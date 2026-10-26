@@ -1,0 +1,43 @@
+<div class="dashboard">
+  <div class="row g-3 mb-4">
+    <div class="col-12 col-md-6 col-xl-3">
+      <vnd-stat-card label="مبيعات اليوم" [value]="todaySales" suffix="ج.م" icon="pi-wallet" accent="primary" />
+    </div>
+    <div class="col-12 col-md-6 col-xl-3">
+      <vnd-stat-card label="طلبات نشطة" [value]="activeOrders" icon="pi-bolt" accent="warning" />
+    </div>
+    <div class="col-12 col-md-6 col-xl-3">
+      <vnd-stat-card label="طلبات مكتملة" [value]="completedOrders" icon="pi-check-circle" accent="success" />
+    </div>
+    <div class="col-12 col-md-6 col-xl-3">
+      <vnd-stat-card label="طلبات ملغاة" [value]="cancelledOrders" icon="pi-times-circle" accent="danger" />
+    </div>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-12 col-lg-8">
+      <div class="combo-card chart-panel">
+        <h2 class="combo-page-title">اتجاه المبيعات الأسبوعي</h2>
+        <div class="chart-panel__canvas-wrap">
+          <canvas #salesChart aria-label="مخطط المبيعات الأسبوعي"></canvas>
+        </div>
+      </div>
+    </div>
+    <div class="col-12 col-lg-4">
+      <div class="combo-card h-100">
+        <h2 class="combo-page-title">الأكثر مبيعاً</h2>
+        <ul class="list-group list-group-flush top-products">
+          @for (item of topProducts; track item.name) {
+            <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+              <div>
+                <div class="fw-semibold">{{ item.name }}</div>
+                <small class="text-muted">{{ item.orders }} طلب</small>
+              </div>
+              <span class="badge text-bg-light border">{{ item.revenue | number:'1.0-0' }} ج.م</span>
+            </li>
+          }
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>

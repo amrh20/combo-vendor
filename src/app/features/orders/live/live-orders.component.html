@@ -1,0 +1,70 @@
+<div class="live-orders">
+  <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+    <p class="text-muted mb-0 small">
+      شاشة المطبخ — حدّث الحالة بسرعة. الطلبات الجديدة تُعلن صوتياً وتظهر كإشعار.
+    </p>
+    <div class="d-flex gap-2">
+      <button type="button" class="btn btn-outline-secondary btn-sm" (click)="refresh()">
+        <i class="pi pi-refresh me-1"></i> تحديث
+      </button>
+      <button type="button" class="btn btn-primary btn-sm" (click)="simulateIncoming()">
+        <i class="pi pi-bell me-1"></i> محاكاة طلب جديد
+      </button>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="text-center py-5 text-muted">جارٍ تحميل الطلبات...</div>
+  } @else {
+    <div class="kanban">
+      @for (column of board(); track column.id) {
+        <section class="kanban__column combo-card">
+          <header class="kanban__header">
+            <h2 class="kanban__title">{{ column.title }}</h2>
+            <span class="badge rounded-pill text-bg-light border">{{ column.items.length }}</span>
+          </header>
+
+          <div class="kanban__cards">
+            @if (column.items.length === 0) {
+              <p class="kanban__empty">لا توجد طلبات</p>
+            }
+            @for (order of column.items; track order.id) {
+              <article class="order-card">
+                <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                  <div>
+                    <div class="order-card__number">{{ order.orderNumber }}</div>
+                    <div class="order-card__customer">{{ order.customerName }}</div>
+                  </div>
+                  <span class="badge text-bg-light border">{{ order.itemCount }} عنصر</span>
+                </div>
+                <ul class="order-card__items">
+                  @for (line of order.items; track line.productId) {
+                    <li>{{ line.quantity }}× {{ line.name }}</li>
+                  }
+                </ul>
+                @if (order.notes) {
+                  <p class="order-card__notes"><i class="pi pi-info-circle"></i> {{ order.notes }}</p>
+                }
+                <div class="d-flex justify-content-between align-items-center mt-2">
+                  <strong>{{ order.total | number:'1.0-0' }} ج.م</strong>
+                  @if (primaryAction(order); as action) {
+                    <button
+                      type="button"
+                      class="btn btn-sm btn-primary"
+                      [disabled]="updatingId() === order.id"
+                      (click)="advance(order)"
+                    >
+                      {{ action.label }}
+                    </button>
+                  } @else {
+                    <span class="small text-success fw-semibold">بانتظار الاستلام</span>
+                  }
+                </div>
+              </article>
+            }
+          </div>
+        </section>
+      }
+    </div>
+  }
+</div>

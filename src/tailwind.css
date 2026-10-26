@@ -1,0 +1,5 @@
+/* Utilities only — preflight is omitted so Bootstrap and the Combo tokens stay intact. */
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+
+@source "./**/*.{html,ts}";

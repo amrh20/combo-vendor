@@ -1,0 +1,64 @@
+<div class="combo-card">
+  <h2 class="combo-page-title">ملف المتجر</h2>
+
+  <form [formGroup]="form" (ngSubmit)="submit()" class="row g-3">
+    <div class="col-12 col-md-6">
+      <label class="form-label">اسم المتجر</label>
+      <input class="form-control" formControlName="name" />
+    </div>
+    <div class="col-12 col-md-6">
+      <label class="form-label">وقت التحضير الافتراضي (دقيقة)</label>
+      <input type="number" class="form-control" formControlName="defaultPreparationMinutes" min="1" />
+    </div>
+    <div class="col-12 col-md-6">
+      <label class="form-label">رابط الشعار</label>
+      <input class="form-control" formControlName="logoUrl" dir="ltr" />
+    </div>
+    <div class="col-12 col-md-6">
+      <label class="form-label">رابط صورة الغلاف</label>
+      <input class="form-control" formControlName="coverUrl" dir="ltr" />
+    </div>
+    <div class="col-12 col-md-6">
+      <label class="form-label">الهاتف</label>
+      <input class="form-control" formControlName="phone" dir="ltr" />
+    </div>
+    <div class="col-12 col-md-6">
+      <label class="form-label">العنوان</label>
+      <input class="form-control" formControlName="address" />
+    </div>
+
+    <div class="col-12">
+      <h3 class="h6 mb-3">ساعات العمل</h3>
+      <div class="table-responsive">
+        <table class="table table-sm align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>اليوم</th>
+              <th>من</th>
+              <th>إلى</th>
+              <th>مغلق</th>
+            </tr>
+          </thead>
+          <tbody formArrayName="businessHours">
+            @for (dayCtrl of hours.controls; track $index; let i = $index) {
+              <tr [formGroupName]="i">
+                <td>{{ dayCtrl.value.day }}</td>
+                <td><input type="time" class="form-control form-control-sm" formControlName="open" /></td>
+                <td><input type="time" class="form-control form-control-sm" formControlName="close" /></td>
+                <td>
+                  <input class="form-check-input" type="checkbox" formControlName="closed" />
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="col-12">
+      <button type="submit" class="btn btn-primary" [disabled]="saving()">
+        {{ saving() ? 'جارٍ الحفظ...' : 'حفظ التغييرات' }}
+      </button>
+    </div>
+  </form>
+</div>

@@ -1,0 +1,49 @@
+<div class="combo-card">
+  <h2 class="combo-page-title">سجل الطلبات</h2>
+
+  <form class="row g-2 align-items-end mb-3" [formGroup]="filters" (ngSubmit)="search()">
+    <div class="col-12 col-md-4">
+      <label class="form-label small">من تاريخ</label>
+      <input type="date" class="form-control form-control-sm" formControlName="from" />
+    </div>
+    <div class="col-12 col-md-4">
+      <label class="form-label small">إلى تاريخ</label>
+      <input type="date" class="form-control form-control-sm" formControlName="to" />
+    </div>
+    <div class="col-12 col-md-4">
+      <button type="submit" class="btn btn-primary btn-sm w-100" [disabled]="loading()">
+        {{ loading() ? 'جارٍ البحث...' : 'تطبيق الفلتر' }}
+      </button>
+    </div>
+  </form>
+
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>رقم الطلب</th>
+          <th>العميل</th>
+          <th>الحالة</th>
+          <th>الإجمالي</th>
+          <th>التاريخ</th>
+        </tr>
+      </thead>
+      <tbody>
+        @if (rows().length === 0) {
+          <tr>
+            <td colspan="5" class="text-center text-muted py-4">لا توجد نتائج</td>
+          </tr>
+        }
+        @for (row of rows(); track row.id) {
+          <tr>
+            <td class="fw-semibold">{{ row.orderNumber }}</td>
+            <td>{{ row.customerName }}</td>
+            <td><span class="badge text-bg-light border">{{ statusLabel(row.status) }}</span></td>
+            <td>{{ row.total | number:'1.0-0' }} ج.م</td>
+            <td>{{ row.createdAt | date:'medium':'':'ar-EG' }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</div>

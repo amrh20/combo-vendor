@@ -1,0 +1,94 @@
+// Bootstrap 5 ↔ Combo design tokens (buttons, switches, tables, forms).
+
+@mixin combo-bootstrap-bridge {
+  --bs-primary: var(--Combo-button-button-background-primary-default);
+  --bs-primary-rgb: 0, 170, 137;
+  --bs-link-color: var(--Combo-text-text-primary);
+  --bs-link-hover-color: var(--Combo-button-button-background-primary-hovered);
+  --bs-focus-ring-color: rgba(0, 170, 137, 0.25);
+  --bs-primary-text-emphasis: var(--Combo-button-button-background-primary-pressed);
+  --bs-primary-bg-subtle: var(--Combo-bg-background-primary-50);
+  --bs-primary-border-subtle: var(--Combo-bg-background-primary-200);
+}
+
+[data-theme='light'] {
+  @include combo-bootstrap-bridge;
+}
+
+[data-theme='dark'] {
+  --bs-primary: var(--Combo-button-button-background-primary-default);
+  --bs-primary-rgb: 0, 189, 152;
+  --bs-link-color: var(--Combo-text-text-primary);
+  --bs-link-hover-color: var(--Combo-button-button-background-primary-hovered);
+  --bs-focus-ring-color: rgba(0, 189, 152, 0.35);
+  --bs-primary-text-emphasis: var(--Combo-text-text-primary-light);
+  --bs-primary-bg-subtle: var(--Combo-bg-background-primary-50);
+  --bs-primary-border-subtle: var(--Combo-bg-background-primary-200);
+}
+
+.btn-primary {
+  --bs-btn-color: var(--Combo-text-text-oncolor-primary);
+  --bs-btn-bg: var(--Combo-button-button-background-primary-default);
+  --bs-btn-border-color: var(--Combo-button-button-background-primary-default);
+  --bs-btn-hover-color: var(--Combo-text-text-oncolor-primary);
+  --bs-btn-hover-bg: var(--Combo-button-button-background-primary-hovered);
+  --bs-btn-hover-border-color: var(--Combo-button-button-background-primary-hovered);
+  --bs-btn-active-color: var(--Combo-text-text-oncolor-primary);
+  --bs-btn-active-bg: var(--Combo-button-button-background-primary-pressed);
+  --bs-btn-active-border-color: var(--Combo-button-button-background-primary-pressed);
+  --bs-btn-focus-shadow-rgb: var(--bs-primary-rgb);
+  --bs-btn-disabled-color: var(--Combo-text-text-oncolor-primary);
+  --bs-btn-disabled-bg: var(--Combo-button-button-background-primary-default);
+  --bs-btn-disabled-border-color: var(--Combo-button-button-background-primary-default);
+}
+
+.btn-outline-primary {
+  --bs-btn-color: var(--Combo-text-text-primary);
+  --bs-btn-border-color: var(--Combo-border-border-primary);
+  --bs-btn-hover-color: var(--Combo-button-button-background-primary-pressed);
+  --bs-btn-hover-bg: var(--Combo-bg-background-primary-50);
+  --bs-btn-hover-border-color: var(--Combo-border-border-primary);
+  --bs-btn-active-color: var(--Combo-text-text-oncolor-primary);
+  --bs-btn-active-bg: var(--Combo-button-button-background-primary-default);
+  --bs-btn-active-border-color: var(--Combo-button-button-background-primary-default);
+  --bs-btn-focus-shadow-rgb: var(--bs-primary-rgb);
+}
+
+.form-control:focus,
+.form-select:focus {
+  border-color: var(--Combo-border-border-primary);
+  box-shadow: 0 0 0 0.25rem var(--bs-focus-ring-color);
+}
+
+.form-check-input:checked {
+  background-color: var(--Combo-button-button-background-primary-default);
+  border-color: var(--Combo-button-button-background-primary-default);
+}
+
+.form-check-input:focus {
+  border-color: var(--Combo-border-border-primary-light);
+  box-shadow: 0 0 0 0.25rem var(--bs-focus-ring-color);
+}
+
+.form-switch .form-check-input:focus {
+  --bs-form-switch-bg: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='rgba%280, 170, 137, 0.25%29'/%3e%3c/svg%3e");
+}
+
+.table {
+  --bs-table-color: var(--Combo-table-table-text-body);
+  --bs-table-border-color: var(--Combo-table-table-cell-border);
+  --bs-table-hover-bg: var(--Combo-table-table-background-row-hovered);
+  --bs-table-hover-color: var(--Combo-table-table-text-body);
+}
+
+.table-light,
+.table > thead.table-light,
+.table > :not(caption) > * > .table-light {
+  --bs-table-bg: var(--Combo-table-table-background-header);
+  --bs-table-color: var(--Combo-table-table-text-head);
+  --bs-table-border-color: var(--Combo-table-table-cell-border);
+}
+
+.table > :not(caption) > * > * {
+  border-bottom-color: var(--Combo-table-table-cell-border);
+}

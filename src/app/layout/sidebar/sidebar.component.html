@@ -1,0 +1,32 @@
+<nav class="sidebar" [class.sidebar--collapsed]="collapsed()" [class.sidebar--mobile]="mobile()">
+  <div class="sidebar__logo">
+    @if (!collapsed()) {
+      <img src="/assets/images/logo.svg" alt="كومبو" class="sidebar__logo-image" width="120" height="40" />
+    }
+    @if (mobile()) {
+      <button type="button" class="sidebar__close" aria-label="إغلاق القائمة" (click)="toggleCollapse.emit()">
+        <i class="pi pi-times"></i>
+      </button>
+    }
+  </div>
+
+  <ul class="sidebar__nav">
+    @for (item of navItems; track item.route) {
+      <li>
+        <a
+          [routerLink]="item.route"
+          routerLinkActive="sidebar__link--active"
+          [routerLinkActiveOptions]="item.exact ? exactMatch : prefixMatch"
+          class="sidebar__link"
+          [title]="collapsed() ? item.label : ''"
+          (click)="onNavClick()"
+        >
+          <i class="pi sidebar__icon" [ngClass]="item.icon"></i>
+          @if (!collapsed()) {
+            <span class="sidebar__label">{{ item.label }}</span>
+          }
+        </a>
+      </li>
+    }
+  </ul>
+</nav>

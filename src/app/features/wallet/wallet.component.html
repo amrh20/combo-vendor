@@ -1,0 +1,58 @@
+@if (summary(); as wallet) {
+  <div class="row g-3 mb-4">
+    <div class="col-12 col-md-4">
+      <vnd-stat-card label="الرصيد المتاح" [value]="wallet.availableBalance" suffix="ج.م" icon="pi-wallet" accent="success" />
+    </div>
+    <div class="col-12 col-md-4">
+      <vnd-stat-card label="قيد التسوية" [value]="wallet.pendingBalance" suffix="ج.م" icon="pi-clock" accent="warning" />
+    </div>
+    <div class="col-12 col-md-4">
+      <vnd-stat-card label="إجمالي المبيعات" [value]="wallet.totalSales" suffix="ج.م" icon="pi-chart-line" accent="primary" />
+    </div>
+  </div>
+
+  <div class="combo-card mb-3">
+    <p class="mb-0 small text-muted">
+      عمولة المنصة: <strong>{{ wallet.platformCommission | number:'1.0-0' }} {{ wallet.currency }}</strong>
+      — صافي أرباحك = المبيعات − العمولة (بعد التسويات).
+    </p>
+  </div>
+}
+
+<div class="combo-card">
+  <h2 class="combo-page-title">التسويات والمدفوعات</h2>
+  @if (loading()) {
+    <p class="text-muted">جارٍ التحميل...</p>
+  } @else {
+    <div class="table-responsive">
+      <table class="table table-hover align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>الفترة</th>
+            <th>المبلغ</th>
+            <th>الحالة</th>
+            <th>تاريخ الطلب</th>
+            <th>تاريخ الإكمال</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of payouts(); track row.id) {
+            <tr>
+              <td>{{ row.periodLabel }}</td>
+              <td>{{ row.amount | number:'1.0-0' }} ج.م</td>
+              <td><span class="badge text-bg-light border">{{ payoutStatusLabel(row.status) }}</span></td>
+              <td>{{ row.requestedAt | date:'mediumDate':'':'ar-EG' }}</td>
+              <td>
+                @if (row.completedAt) {
+                  {{ row.completedAt | date:'mediumDate':'':'ar-EG' }}
+                } @else {
+                  —
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</div>

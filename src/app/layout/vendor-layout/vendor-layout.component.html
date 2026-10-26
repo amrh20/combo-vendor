@@ -1,0 +1,31 @@
+<div
+  class="admin-layout"
+  [class.admin-layout--collapsed]="!isMobile() && sidebarCollapsed()"
+  [class.admin-layout--nav-open]="isMobile() && mobileNavOpen()"
+>
+  @if (isMobile() && mobileNavOpen()) {
+    <div class="admin-layout__overlay" role="presentation" (click)="closeMobileNav()"></div>
+  }
+
+  <aside
+    class="admin-layout__sidebar"
+    [attr.aria-hidden]="isMobile() && !mobileNavOpen() ? 'true' : null"
+  >
+    <vnd-sidebar
+      [collapsed]="!isMobile() && sidebarCollapsed()"
+      [mobile]="isMobile()"
+      (toggleCollapse)="toggleSidebar()"
+      (navigate)="closeMobileNav()"
+    />
+  </aside>
+
+  <div class="admin-layout__body">
+    <header class="admin-layout__topbar">
+      <vnd-topbar (toggleSidebar)="toggleSidebar()" />
+    </header>
+
+    <main class="admin-layout__content">
+      <router-outlet />
+    </main>
+  </div>
+</div>

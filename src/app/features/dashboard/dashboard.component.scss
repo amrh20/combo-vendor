@@ -1,0 +1,11 @@
+.chart-panel {
+  &__canvas-wrap {
+    height: 280px;
+    position: relative;
+  }
+}
+
+.top-products .list-group-item {
+  background: transparent;
+  border-color: var(--Combo-border-border-neutral-secondary);
+}

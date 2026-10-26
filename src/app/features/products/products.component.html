@@ -1,0 +1,118 @@
+<div class="vendor-products">
+  <div class="vendor-products__header">
+    <div class="vendor-products__header-text">
+      <h1 class="vendor-products__title">المنتجات والمخزون</h1>
+      <p class="vendor-products__subtitle">إدارة قائمة منتجات متجرك وظهورها وتوفّرها في التطبيق.</p>
+    </div>
+    <div class="vendor-products__header-actions">
+      <button type="button" class="vendor-products__icon-btn" aria-label="تحديث القائمة" (click)="load()">
+        <i class="pi pi-refresh"></i>
+      </button>
+      <button type="button" class="vendor-products__add-btn" (click)="openCreate()">
+        <i class="pi pi-plus"></i>
+        إضافة منتج
+      </button>
+    </div>
+  </div>
+
+  @if (!loading() && rows().length) {
+    <div class="vendor-products__meta">
+      {{ rows().length }} منتج · {{ availableCount() }} متوفر في التطبيق
+    </div>
+  }
+
+  @if (loading()) {
+    <div class="vendor-products__empty">
+      <i class="pi pi-spin pi-spinner" aria-hidden="true"></i>
+      <p>جاري تحميل المنتجات...</p>
+    </div>
+  } @else if (rows().length === 0) {
+    <div class="vendor-products__empty">
+      <i class="pi pi-inbox" aria-hidden="true"></i>
+      <p class="vendor-products__empty-title">لا توجد منتجات بعد</p>
+      <button type="button" class="vendor-products__add-btn" (click)="openCreate()">
+        <i class="pi pi-plus"></i>
+        إضافة منتج
+      </button>
+    </div>
+  } @else {
+    <div class="vendor-products__grid">
+      @for (product of rows(); track product.id) {
+        <article
+          class="vendor-products__card"
+          [class.vendor-products__card--unavailable]="!isListed(product)"
+        >
+          <div class="vendor-products__card-media">
+            @if (product.imageUrl) {
+              <img
+                class="vendor-products__card-img"
+                [src]="product.imageUrl"
+                [alt]="product.name"
+                loading="lazy"
+              />
+            } @else {
+              <div class="vendor-products__card-fallback" aria-hidden="true">
+                <i class="pi pi-image"></i>
+              </div>
+            }
+            <span
+              class="vendor-products__badge"
+              [class.vendor-products__badge--on]="isListed(product)"
+              [class.vendor-products__badge--off]="!isListed(product)"
+            >
+              {{ isListed(product) ? 'متوفر' : 'غير متوفر' }}
+            </span>
+            <div class="vendor-products__card-actions">
+              <button
+                type="button"
+                class="vendor-products__card-action"
+                aria-label="تعديل المنتج"
+                (click)="openEdit(product)"
+              >
+                <i class="pi pi-pencil"></i>
+                <span>تعديل</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="vendor-products__card-body">
+            <div class="vendor-products__card-top">
+              <h2 class="vendor-products__card-name">{{ product.name }}</h2>
+              <span class="vendor-products__card-category">{{ product.sectionName || product.sectionId }}</span>
+            </div>
+            @if (product.description) {
+              <p class="vendor-products__card-desc">{{ product.description }}</p>
+            }
+            <div class="vendor-products__card-meta">
+              <span>{{ product.preparationMinutes }} د تحضير</span>
+            </div>
+            <div class="vendor-products__card-footer">
+              <span class="vendor-products__card-price">
+                {{ product.price | number: '1.0-2' }}
+                <span class="vendor-products__card-currency">{{ currency }}</span>
+              </span>
+            </div>
+            <div class="vendor-products__toggles">
+              <div class="vendor-products__toggle-row">
+                <span class="vendor-products__toggle-label">ظاهر في التطبيق</span>
+                <p-toggleswitch
+                  [ngModel]="product.isAvailable"
+                  (ngModelChange)="toggleActive(product, $event)"
+                  [inputId]="'active-' + product.id"
+                />
+              </div>
+              <div class="vendor-products__toggle-row">
+                <span class="vendor-products__toggle-label">متوفر في المخزون</span>
+                <p-toggleswitch
+                  [ngModel]="product.inStock"
+                  (ngModelChange)="toggleStock(product, $event)"
+                  [inputId]="'stock-' + product.id"
+                />
+              </div>
+            </div>
+          </div>
+        </article>
+      }
+    </div>
+  }
+</div>

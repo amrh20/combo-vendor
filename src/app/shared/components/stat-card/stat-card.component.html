@@ -1,0 +1,15 @@
+<div class="stat-card" [class]="'stat-card--' + accent()">
+  <div class="stat-card__icon">
+    <i class="pi" [class]="icon()"></i>
+  </div>
+  <div class="stat-card__body">
+    <div class="stat-card__label">{{ label() }}</div>
+    <div class="stat-card__value">
+      @if (suffix()) {
+        {{ value() | number:'1.0-0' }} {{ suffix() }}
+      } @else {
+        {{ value() | number:'1.0-0' }}
+      }
+    </div>
+  </div>
+</div>

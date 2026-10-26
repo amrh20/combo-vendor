@@ -1,0 +1,13 @@
+<div class="toast-stack" aria-live="polite" aria-atomic="true">
+  @for (toast of toasts(); track toast.id) {
+    <div class="toast-item" [ngClass]="'toast-item--' + toast.variant" role="alert">
+      <div class="toast-item__content">
+        <strong class="toast-item__title">{{ toast.title }}</strong>
+        <p class="toast-item__body">{{ toast.body }}</p>
+      </div>
+      <button type="button" class="toast-item__close" (click)="dismiss(toast.id)" aria-label="إغلاق">
+        <i class="pi pi-times"></i>
+      </button>
+    </div>
+  }
+</div>

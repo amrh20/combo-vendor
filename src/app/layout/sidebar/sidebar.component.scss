@@ -1,0 +1,246 @@
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background-color: var(--Combo-bg-background-white);
+  border-inline-end: 1px solid var(--Combo-border-border-neutral-secondary);
+  overflow: hidden;
+
+  // ── Logo ──────────────────────────────────────────
+  &__logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    height: 64px;
+    border-bottom: 1px solid var(--Combo-border-border-neutral-secondary);
+    flex-shrink: 0;
+  }
+
+  &__close {
+    margin-inline-start: auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--Combo-text-text-secondary-paragraph);
+    cursor: pointer;
+    flex-shrink: 0;
+
+    &:hover {
+      background-color: var(--Combo-bg-background-neutral-100);
+      color: var(--Combo-text-text-display);
+    }
+  }
+
+  &__logo-mark {
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+    border-radius: 10px;
+    background-color: var(--Combo-bg-background-primary);
+    color: var(--Combo-text-text-oncolor-primary);
+    font-family: 'Kufam', sans-serif;
+    font-weight: 700;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  &__logo-text {
+    font-family: 'Kufam', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--Combo-text-text-display);
+    white-space: nowrap;
+  }
+
+  // ── Nav ───────────────────────────────────────────
+  &__nav {
+    flex: 1;
+    list-style: none;
+    margin: 0;
+    padding: 10px 8px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  &__link {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    text-decoration: none;
+    color: var(--Combo-text-text-primary-paragraph);
+    font-size: 14px;
+    font-weight: 500;
+    white-space: nowrap;
+    transition: background-color 0.15s, color 0.15s;
+
+    &:hover {
+      background-color: var(--Combo-bg-background-neutral-100);
+      color: var(--Combo-text-text-primary);
+    }
+
+    &--active,
+    &--board-rail {
+      background-color: var(--Combo-bg-background-primary) !important;
+      color: var(--Combo-text-text-oncolor-primary) !important;
+
+      .sidebar__icon {
+        color: var(--Combo-text-text-oncolor-primary);
+      }
+    }
+  }
+
+  &__icon {
+    font-size: 16px;
+    width: 20px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+
+  &__label {
+    font-size: 14px;
+  }
+
+  &__link.sidebar__link--nested {
+    padding: 8px 12px;
+    border-radius: 8px;
+    border-inline-start: 2px solid transparent;
+    color: var(--Combo-text-text-secondary-paragraph);
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.45;
+    white-space: normal;
+    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+
+    .sidebar__icon {
+      font-size: 14px;
+      color: var(--Combo-icon-icon-neutral);
+    }
+
+    &:hover {
+      background-color: var(--Combo-bg-background-primary-50);
+      color: var(--Combo-text-text-primary);
+
+      .sidebar__icon {
+        color: var(--Combo-text-text-primary);
+      }
+    }
+  }
+
+  // Soft highlight, distinct from the solid parent-link active state.
+  // The negative offset places this green edge over the submenu's gray rail.
+  &__link.sidebar__link--child-active,
+  &__link.sidebar__link--board-active {
+    margin-inline-start: -18px;
+    padding-inline-start: 28px;
+    border-inline-start-color: var(--Combo-border-border-primary);
+    background-color: var(--Combo-bg-background-primary-50);
+    color: var(--Combo-text-text-primary);
+    font-weight: 700;
+
+    .sidebar__icon {
+      color: var(--Combo-text-text-primary);
+    }
+  }
+
+  // ── Collapsible group ─────────────────────────────
+  &__group-toggle {
+    width: 100%;
+    border: none;
+    background: transparent;
+    font-family: 'Alexandria', sans-serif;
+    text-align: start;
+    cursor: pointer;
+  }
+
+  &__group--active > .sidebar__group-toggle {
+    color: var(--Combo-text-text-primary);
+    font-weight: 600;
+  }
+
+  &__chevron {
+    margin-inline-start: auto;
+    font-size: 11px;
+    color: var(--Combo-icon-icon-neutral);
+    transition: transform 0.25s ease;
+  }
+
+  &__group--open > .sidebar__group-toggle .sidebar__chevron {
+    transform: rotate(180deg);
+  }
+
+  // Animating grid rows 0fr → 1fr gives a natural-height slide without measuring in JS.
+  &__submenu {
+    display: grid;
+    grid-template-rows: 0fr;
+    opacity: 0;
+    transition: grid-template-rows 0.25s ease, opacity 0.2s ease;
+  }
+
+  &__group--open > .sidebar__submenu {
+    grid-template-rows: 1fr;
+    opacity: 1;
+  }
+
+  &__submenu-list {
+    min-height: 0;
+    overflow: hidden;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin: 8px 0 0;
+    margin-inline-start: 24px;
+    padding: 0;
+    padding-inline-start: 16px;
+    border-inline-start: 2px solid var(--Combo-border-border-neutral-secondary);
+  }
+
+  // ── Collapse button ───────────────────────────────
+  &__toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 14px 16px;
+    background: none;
+    border: none;
+    border-top: 1px solid var(--Combo-border-border-neutral-secondary);
+    color: var(--Combo-text-text-secondary-paragraph);
+    font-size: 13px;
+    font-family: 'Alexandria', sans-serif;
+    cursor: pointer;
+    width: 100%;
+    flex-shrink: 0;
+    transition: background-color 0.15s;
+
+    &:hover {
+      background-color: var(--Combo-bg-background-neutral-100);
+    }
+  }
+
+  // ── Collapsed state ───────────────────────────────
+  &--collapsed {
+    .sidebar__link {
+      justify-content: center;
+      padding: 10px;
+    }
+
+    .sidebar__toggle {
+      justify-content: center;
+      padding: 14px;
+    }
+  }
+}
