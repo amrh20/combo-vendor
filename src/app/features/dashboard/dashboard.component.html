@@ -1,43 +1,139 @@
 <div class="dashboard">
-  <div class="row g-3 mb-4">
-    <div class="col-12 col-md-6 col-xl-3">
-      <vnd-stat-card label="مبيعات اليوم" [value]="todaySales" suffix="ج.م" icon="pi-wallet" accent="primary" />
-    </div>
-    <div class="col-12 col-md-6 col-xl-3">
-      <vnd-stat-card label="طلبات نشطة" [value]="activeOrders" icon="pi-bolt" accent="warning" />
-    </div>
-    <div class="col-12 col-md-6 col-xl-3">
-      <vnd-stat-card label="طلبات مكتملة" [value]="completedOrders" icon="pi-check-circle" accent="success" />
-    </div>
-    <div class="col-12 col-md-6 col-xl-3">
-      <vnd-stat-card label="طلبات ملغاة" [value]="cancelledOrders" icon="pi-times-circle" accent="danger" />
+  <div class="dashboard__header">
+    <h1 class="combo-page-title dashboard__title">نظرة عامة</h1>
+    <div class="dashboard__period" role="tablist" aria-label="فترة الإحصائيات">
+      @for (opt of periodOptions; track opt.value) {
+        <button
+          type="button"
+          role="tab"
+          class="dashboard__period-btn"
+          [class.dashboard__period-btn--active]="period() === opt.value"
+          [attr.aria-selected]="period() === opt.value"
+          [disabled]="loading()"
+          (click)="setPeriod(opt.value)"
+        >
+          {{ opt.label }}
+        </button>
+      }
     </div>
   </div>
 
-  <div class="row g-3">
+  @if (loading() && !stats()) {
+    <p class="text-muted mb-4">جارٍ تحميل الإحصائيات…</p>
+  }
+
+  @let data = viewStats();
+
+  <div class="row g-3 mb-4" [class.dashboard__content--loading]="loading()">
+    <div class="col-12 col-md-6 col-xl-3">
+      <vnd-stat-card
+        label="إجمالي الطلبات"
+        [value]="data.summary.totalOrders"
+        icon="pi-shopping-cart"
+        accent="primary"
+      />
+    </div>
+    <div class="col-12 col-md-6 col-xl-3">
+      <vnd-stat-card
+        label="طلبات مكتملة"
+        [value]="data.summary.deliveredOrders"
+        icon="pi-check-circle"
+        accent="success"
+      />
+    </div>
+    <div class="col-12 col-md-6 col-xl-3">
+      <vnd-stat-card
+        label="طلبات ملغاة"
+        [value]="data.summary.cancelledOrders"
+        icon="pi-times-circle"
+        accent="danger"
+      />
+    </div>
+    <div class="col-12 col-md-6 col-xl-3">
+      <vnd-stat-card
+        label="صافي المبيعات"
+        [value]="egp(data.summary.netSalesPiastres)"
+        suffix="ج.م"
+        icon="pi-wallet"
+        accent="primary"
+      />
+    </div>
+  </div>
+
+  <div class="row g-3 mb-4" [class.dashboard__content--loading]="loading()">
     <div class="col-12 col-lg-8">
-      <div class="combo-card chart-panel">
-        <h2 class="combo-page-title">اتجاه المبيعات الأسبوعي</h2>
+      <div class="combo-card chart-panel h-100">
+        <h2 class="combo-page-title">{{ chartTitle() }}</h2>
         <div class="chart-panel__canvas-wrap">
-          <canvas #salesChart aria-label="مخطط المبيعات الأسبوعي"></canvas>
+          @if (!chartHasSales()) {
+            <p class="chart-panel__empty text-muted mb-0">لا توجد مبيعات في هذه الفترة</p>
+          }
+          <canvas
+            #salesChart
+            aria-label="رسم المبيعات"
+            [class.chart-panel__canvas--hidden]="!chartHasSales()"
+          ></canvas>
         </div>
       </div>
     </div>
     <div class="col-12 col-lg-4">
-      <div class="combo-card h-100">
+      <div class="combo-card h-100 top-products">
         <h2 class="combo-page-title">الأكثر مبيعاً</h2>
-        <ul class="list-group list-group-flush top-products">
-          @for (item of topProducts; track item.name) {
-            <li class="list-group-item d-flex justify-content-between align-items-center px-0">
-              <div>
-                <div class="fw-semibold">{{ item.name }}</div>
-                <small class="text-muted">{{ item.orders }} طلب</small>
-              </div>
-              <span class="badge text-bg-light border">{{ item.revenue | number:'1.0-0' }} ج.م</span>
-            </li>
-          }
-        </ul>
+        @if (data.topProducts.length === 0) {
+          <p class="text-muted mb-0">لا توجد مبيعات</p>
+        } @else {
+          <ul class="list-group list-group-flush">
+            @for (product of data.topProducts; track product.productId) {
+              <li class="list-group-item px-0 d-flex justify-content-between align-items-start gap-2">
+                <div>
+                  <div class="fw-semibold">{{ product.name }}</div>
+                  <div class="small text-muted">
+                    {{ product.quantitySold | number: '1.0-0' }} قطعة
+                  </div>
+                </div>
+                <span class="text-nowrap fw-semibold">
+                  {{ egp(product.revenuePiastres) | number: '1.2-2' }} ج.م
+                </span>
+              </li>
+            }
+          </ul>
+        }
       </div>
+    </div>
+  </div>
+
+  <div class="combo-card" [class.dashboard__content--loading]="loading()">
+    <h2 class="combo-page-title">أحدث الطلبات</h2>
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>رقم الطلب</th>
+            <th>الوقت</th>
+            <th>الحالة</th>
+            <th>الإجمالي</th>
+          </tr>
+        </thead>
+        <tbody>
+          @if (data.recentOrders.length === 0) {
+            <tr>
+              <td colspan="4" class="text-center text-muted py-4">لا توجد طلبات</td>
+            </tr>
+          }
+          @for (order of data.recentOrders; track order.id) {
+            <tr>
+              <td class="fw-semibold">{{ order.orderNumber }}</td>
+              <td>{{ order.placedAt | date: 'medium': '': 'ar-EG' }}</td>
+              <td>
+                <span class="badge" [class]="statusBadgeClass(order.status)">
+                  {{ statusLabel(order.status) }}
+                </span>
+              </td>
+              <td>{{ egp(order.totalPiastres) | number: '1.2-2' }} ج.م</td>
+            </tr>
+          }
+        </tbody>
+      </table>
     </div>
   </div>
 </div>

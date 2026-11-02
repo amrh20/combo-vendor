@@ -8,17 +8,20 @@
       <button type="button" class="vendor-products__icon-btn" aria-label="تحديث القائمة" (click)="load()">
         <i class="pi pi-refresh"></i>
       </button>
-      <button type="button" class="vendor-products__add-btn" (click)="openCreate()">
+      <button
+        *ngIf="canManageCatalog()"
+        type="button"
+        class="vendor-products__add-btn"
+        (click)="openCreate()"
+      >
         <i class="pi pi-plus"></i>
         إضافة منتج
       </button>
     </div>
   </div>
 
-  @if (!loading() && rows().length) {
-    <div class="vendor-products__meta">
-      {{ rows().length }} منتج · {{ availableCount() }} متوفر في التطبيق
-    </div>
+  @if (catalogActionsHint(); as hint) {
+    <p class="vendor-products__meta" role="status">{{ hint }}</p>
   }
 
   @if (loading()) {
@@ -26,27 +29,39 @@
       <i class="pi pi-spin pi-spinner" aria-hidden="true"></i>
       <p>جاري تحميل المنتجات...</p>
     </div>
+  } @else if (loadError() && rows().length === 0) {
+    <div class="vendor-products__empty">
+      <i class="pi pi-exclamation-circle" aria-hidden="true"></i>
+      <p class="vendor-products__empty-title">{{ loadError() }}</p>
+      <button type="button" class="vendor-products__add-btn" (click)="load()">إعادة المحاولة</button>
+    </div>
   } @else if (rows().length === 0) {
     <div class="vendor-products__empty">
       <i class="pi pi-inbox" aria-hidden="true"></i>
       <p class="vendor-products__empty-title">لا توجد منتجات بعد</p>
-      <button type="button" class="vendor-products__add-btn" (click)="openCreate()">
+      <button
+        *ngIf="canManageCatalog()"
+        type="button"
+        class="vendor-products__add-btn"
+        (click)="openCreate()"
+      >
         <i class="pi pi-plus"></i>
         إضافة منتج
       </button>
+      <p *ngIf="!canManageCatalog()">الكتالوج بيتدار من كومبو. تقدر تغيّر المتاح بس لما تتضاف منتجات.</p>
     </div>
   } @else {
     <div class="vendor-products__grid">
       @for (product of rows(); track product.id) {
         <article
           class="vendor-products__card"
-          [class.vendor-products__card--unavailable]="!isListed(product)"
+          [class.vendor-products__card--unavailable]="!product.isAvailable"
         >
           <div class="vendor-products__card-media">
-            @if (product.imageUrl) {
+            @if (cover(product); as imageUrl) {
               <img
                 class="vendor-products__card-img"
-                [src]="product.imageUrl"
+                [src]="imageUrl"
                 [alt]="product.name"
                 loading="lazy"
               />
@@ -57,12 +72,12 @@
             }
             <span
               class="vendor-products__badge"
-              [class.vendor-products__badge--on]="isListed(product)"
-              [class.vendor-products__badge--off]="!isListed(product)"
+              [class.vendor-products__badge--on]="product.isAvailable"
+              [class.vendor-products__badge--off]="!product.isAvailable"
             >
-              {{ isListed(product) ? 'متوفر' : 'غير متوفر' }}
+              {{ product.isAvailable ? 'متوفر' : 'غير متوفر' }}
             </span>
-            <div class="vendor-products__card-actions">
+            <div *ngIf="canManageCatalog()" class="vendor-products__card-actions">
               <button
                 type="button"
                 class="vendor-products__card-action"
@@ -78,35 +93,27 @@
           <div class="vendor-products__card-body">
             <div class="vendor-products__card-top">
               <h2 class="vendor-products__card-name">{{ product.name }}</h2>
-              <span class="vendor-products__card-category">{{ product.sectionName || product.sectionId }}</span>
+              @if (product.sectionName) {
+                <span class="vendor-products__card-category">{{ product.sectionName }}</span>
+              }
             </div>
             @if (product.description) {
               <p class="vendor-products__card-desc">{{ product.description }}</p>
             }
-            <div class="vendor-products__card-meta">
-              <span>{{ product.preparationMinutes }} د تحضير</span>
-            </div>
             <div class="vendor-products__card-footer">
               <span class="vendor-products__card-price">
-                {{ product.price | number: '1.0-2' }}
+                {{ egp(product.pricePiastres) | number: '1.0-2' }}
                 <span class="vendor-products__card-currency">{{ currency }}</span>
               </span>
             </div>
             <div class="vendor-products__toggles">
               <div class="vendor-products__toggle-row">
-                <span class="vendor-products__toggle-label">ظاهر في التطبيق</span>
+                <span class="vendor-products__toggle-label">متاح</span>
                 <p-toggleswitch
                   [ngModel]="product.isAvailable"
                   (ngModelChange)="toggleActive(product, $event)"
+                  [disabled]="isPending(product.id)"
                   [inputId]="'active-' + product.id"
-                />
-              </div>
-              <div class="vendor-products__toggle-row">
-                <span class="vendor-products__toggle-label">متوفر في المخزون</span>
-                <p-toggleswitch
-                  [ngModel]="product.inStock"
-                  (ngModelChange)="toggleStock(product, $event)"
-                  [inputId]="'stock-' + product.id"
                 />
               </div>
             </div>
@@ -114,5 +121,15 @@
         </article>
       }
     </div>
+
+  }
+
+  @if (rows().length > 0 || page() > 1) {
+    <vnd-pagination
+      [page]="page()"
+      [hasNext]="hasNext()"
+      [disabled]="loading() || paging()"
+      (pageChange)="goTo($event)"
+    />
   }
 </div>

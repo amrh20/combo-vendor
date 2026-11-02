@@ -1,8 +1,121 @@
+.dashboard {
+  &__header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px 20px;
+    margin-bottom: 1.5rem;
+  }
+
+  &__title {
+    margin: 0;
+    font-size: 1.25rem;
+    flex: 0 0 auto;
+  }
+
+  &__period {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+    padding: 4px;
+    border-radius: 12px;
+    background: var(--Combo-bg-background-neutral-100);
+    border: 1px solid var(--Combo-border-border-neutral-secondary);
+    max-width: 100%;
+  }
+
+  &__period-btn {
+    border: none;
+    background: transparent;
+    color: var(--Combo-text-text-primary-paragraph);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.25;
+    padding: 8px 14px;
+    border-radius: 8px;
+    white-space: nowrap;
+    cursor: pointer;
+    transition:
+      background-color 0.15s ease,
+      color 0.15s ease,
+      box-shadow 0.15s ease;
+
+    &:hover:not(:disabled):not(.dashboard__period-btn--active) {
+      background: var(--Combo-bg-background-card);
+      color: var(--Combo-text-text-display);
+    }
+
+    &:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+    &--active {
+      background: var(--Combo-button-button-background-primary-default);
+      color: var(--Combo-text-text-oncolor-primary);
+      font-weight: 600;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--Combo-border-border-primary);
+      outline-offset: 1px;
+    }
+  }
+
+  @media (max-width: 575.98px) {
+    &__header {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    &__period {
+      width: 100%;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+
+      &::-webkit-scrollbar {
+        display: none;
+      }
+    }
+
+    &__period-btn {
+      flex: 1 1 auto;
+      min-width: max-content;
+      text-align: center;
+      padding-inline: 12px;
+    }
+  }
+}
+
 .chart-panel {
   &__canvas-wrap {
     height: 280px;
     position: relative;
   }
+
+  &__empty {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 1rem;
+  }
+
+  &__canvas--hidden {
+    visibility: hidden;
+  }
+}
+
+.dashboard__content--loading {
+  opacity: 0.65;
+  pointer-events: none;
 }
 
 .top-products .list-group-item {

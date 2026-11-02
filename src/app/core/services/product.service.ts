@@ -1,64 +1,50 @@
 import { HttpClient } from '@angular/common/http';
-import { Injectable, inject, signal } from '@angular/core';
-import { Observable, delay, of, tap, throwError } from 'rxjs';
-import { API_BASE_URL, USE_MOCK_API } from '../api-config';
+import { Injectable, inject } from '@angular/core';
+import { Observable, map } from 'rxjs';
+import { API_BASE_URL } from '../api-config';
+import { LIST_PAGE_SIZE } from '../list-page';
 import {
+  ProductListPage,
   ProductUpdatePayload,
   ProductWritePayload,
   VendorCatalogProduct,
 } from '../models/catalog-product.model';
-import { piastresToEgp } from '../models/money.model';
 
-const PRODUCTS_URL = `${API_BASE_URL}/v1/vendor/products`;
+const PRODUCTS_URL = `${API_BASE_URL}/v1/store/products`;
 
 @Injectable({ providedIn: 'root' })
 export class ProductService {
   private readonly http = inject(HttpClient);
-  private readonly catalog = signal<VendorCatalogProduct[]>(seedProducts());
 
-  list(): Observable<VendorCatalogProduct[]> {
-    if (USE_MOCK_API) {
-      return of(this.catalog()).pipe(delay(150));
-    }
-    return this.http.get<VendorCatalogProduct[]>(PRODUCTS_URL).pipe(tap((items) => this.catalog.set(items)));
+  /** `GET /v1/store/products?limit=10`, optionally `cursor` for the next page. */
+  list(cursor?: string): Observable<ProductListPage> {
+    return this.http
+      .get<ProductListPage>(PRODUCTS_URL, {
+        params: {
+          limit: String(LIST_PAGE_SIZE),
+          ...(cursor ? { cursor } : {}),
+        },
+      })
+      .pipe(map((page) => ({ items: page.items.map(normalizeProduct), nextCursor: page.nextCursor })));
   }
 
   getProduct(id: string): Observable<VendorCatalogProduct> {
-    if (USE_MOCK_API) {
-      const product = this.catalog().find((item) => item.id === id);
-      if (!product) {
-        return throwError(() => new Error('Product not found'));
-      }
-      return of(product).pipe(delay(120));
-    }
-    return this.http.get<VendorCatalogProduct>(`${PRODUCTS_URL}/${id}`);
+    return this.http.get<VendorCatalogProduct>(`${PRODUCTS_URL}/${id}`).pipe(map(normalizeProduct));
   }
 
   createProduct(payload: ProductWritePayload): Observable<VendorCatalogProduct> {
-    if (USE_MOCK_API) {
-      const created = mapWritePayload(payload, `p${Date.now()}`);
-      this.catalog.update((items) => [created, ...items]);
-      return of(created).pipe(delay(120));
-    }
-    return this.http.post<VendorCatalogProduct>(PRODUCTS_URL, payload);
+    return this.http.post<VendorCatalogProduct>(PRODUCTS_URL, payload).pipe(map(normalizeProduct));
   }
 
   updateProduct(id: string, payload: ProductUpdatePayload): Observable<VendorCatalogProduct> {
-    if (USE_MOCK_API) {
-      this.catalog.update((items) =>
-        items.map((item) => (item.id === id ? mergeProduct(item, payload) : item)),
-      );
-      return of(this.catalog().find((p) => p.id === id)!).pipe(delay(120));
-    }
-    return this.http.patch<VendorCatalogProduct>(`${PRODUCTS_URL}/${id}`, payload);
+    return this.http.patch<VendorCatalogProduct>(`${PRODUCTS_URL}/${id}`, payload).pipe(map(normalizeProduct));
   }
 
-  setActive(id: string, isAvailable: boolean): Observable<VendorCatalogProduct> {
-    return this.updateProduct(id, { isAvailable });
-  }
-
-  setInStock(id: string, inStock: boolean): Observable<VendorCatalogProduct> {
-    return this.updateProduct(id, { inStock });
+  /** `PATCH /v1/store/products/:id/availability` with `{ isAvailable }`. Any shop role. */
+  setAvailability(id: string, isAvailable: boolean): Observable<VendorCatalogProduct> {
+    return this.http
+      .patch<VendorCatalogProduct>(`${PRODUCTS_URL}/${id}/availability`, { isAvailable })
+      .pipe(map(normalizeProduct));
   }
 }
 
@@ -70,105 +56,33 @@ export function displayImage(url: string): string {
   return raw.startsWith('/') ? `${API_BASE_URL}${raw}` : raw;
 }
 
-function mergeProduct(
-  current: VendorCatalogProduct,
-  payload: ProductUpdatePayload,
-): VendorCatalogProduct {
-  const pricePiastres = payload.pricePiastres ?? current.pricePiastres;
-  const images = payload.images ?? current.images;
-  return {
-    ...current,
-    ...payload,
-    sectionId: payload.sectionId ?? current.sectionId,
-    pricePiastres,
-    price: piastresToEgp(pricePiastres),
-    imageUrl: images[0] ? displayImage(images[0]) : current.imageUrl,
-    updatedAt: new Date().toISOString(),
-  };
+/** Fill fields the list and form expect when the store API omits them. */
+const DEFAULT_PREPARATION_MINUTES = 10;
+
+function normalizePreparationMinutes(value: number | undefined | null): number {
+  const minutes = Number(value);
+  return Number.isFinite(minutes) && minutes >= 1 ? minutes : DEFAULT_PREPARATION_MINUTES;
 }
 
-function mapWritePayload(payload: ProductWritePayload, id: string): VendorCatalogProduct {
-  const images = payload.images.map((image) => image.trim()).filter(Boolean);
+function normalizeProduct(raw: VendorCatalogProduct): VendorCatalogProduct {
+  const images = (raw.images ?? []).map((image) => image.trim()).filter(Boolean);
+  const shopCategoryId = raw.shopCategoryId ?? raw.sectionId ?? null;
   return {
-    id,
-    sectionId: payload.sectionId ?? '',
-    name: payload.name,
-    description: payload.description,
+    ...raw,
+    shopCategoryId,
+    sectionId: raw.sectionId || shopCategoryId || '',
+    name: raw.name ?? '',
+    description: raw.description ?? '',
     images,
-    imageUrl: images[0] ? displayImage(images[0]) : '',
-    isAvailable: payload.isAvailable,
-    isNew: payload.isNew,
-    inStock: payload.inStock,
-    preparationMinutes: payload.preparationMinutes,
-    pricePiastres: payload.pricePiastres,
-    oldPricePiastres: payload.oldPricePiastres,
-    price: piastresToEgp(payload.pricePiastres),
-    sectionName: '',
-    variants: payload.variants,
-    specifications: payload.specifications,
-    updatedAt: new Date().toISOString(),
+    imageUrl: images[0] ? displayImage(images[0]) : displayImage(raw.imageUrl ?? ''),
+    isAvailable: raw.isAvailable === true,
+    isNew: raw.isNew === true,
+    preparationMinutes: normalizePreparationMinutes(raw.preparationMinutes),
+    pricePiastres: raw.pricePiastres ?? 0,
+    oldPricePiastres: raw.oldPricePiastres ?? null,
+    sectionName: raw.sectionName ?? '',
+    variants: raw.variants ?? [],
+    specifications: raw.specifications ?? [],
+    updatedAt: raw.updatedAt ?? raw.createdAt ?? new Date().toISOString(),
   };
-}
-
-function seedProducts(): VendorCatalogProduct[] {
-  const now = new Date().toISOString();
-  return [
-    {
-      id: 'p1',
-      sectionId: 's1',
-      name: 'ساندwich مشكل',
-      description: 'خبز طازج مع لحوم مشكلة وخضار',
-      price: 45,
-      pricePiastres: 4500,
-      oldPricePiastres: null,
-      preparationMinutes: 12,
-      isAvailable: true,
-      isNew: false,
-      inStock: true,
-      sectionName: 'ساندwiches',
-      images: [],
-      imageUrl: '',
-      variants: [],
-      specifications: [],
-      updatedAt: now,
-    },
-    {
-      id: 'p2',
-      sectionId: 's2',
-      name: 'كروissant بالشokolata',
-      description: 'كروissant فرنسي بالشokolata',
-      price: 22,
-      pricePiastres: 2200,
-      oldPricePiastres: null,
-      preparationMinutes: 5,
-      isAvailable: true,
-      isNew: true,
-      inStock: false,
-      sectionName: 'مخبوزات',
-      images: [],
-      imageUrl: '',
-      variants: [],
-      specifications: [],
-      updatedAt: now,
-    },
-    {
-      id: 'p3',
-      sectionId: 's3',
-      name: 'قهوة تركي',
-      description: 'قهوة تركي أصيلة',
-      price: 18,
-      pricePiastres: 1800,
-      oldPricePiastres: null,
-      preparationMinutes: 8,
-      isAvailable: false,
-      isNew: false,
-      inStock: true,
-      sectionName: 'مشروبات',
-      images: [],
-      imageUrl: '',
-      variants: [],
-      specifications: [],
-      updatedAt: now,
-    },
-  ];
 }

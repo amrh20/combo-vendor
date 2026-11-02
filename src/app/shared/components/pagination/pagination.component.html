@@ -1,0 +1,19 @@
+<nav class="vnd-pagination" aria-label="التنقل بين الصفحات">
+  <button
+    type="button"
+    class="vnd-pagination__btn"
+    [disabled]="disabled() || page() <= 1"
+    (click)="previous()"
+  >
+    السابق
+  </button>
+  <span class="vnd-pagination__page">صفحة {{ page() }}</span>
+  <button
+    type="button"
+    class="vnd-pagination__btn"
+    [disabled]="disabled() || !hasNext()"
+    (click)="next()"
+  >
+    التالي
+  </button>
+</nav>

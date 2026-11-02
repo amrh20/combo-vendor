@@ -284,6 +284,32 @@
     color: var(--Combo-text-text-secondary-paragraph);
   }
 
+  &__more {
+    display: flex;
+    justify-content: center;
+  }
+
+  &__more-btn {
+    padding: 9px 18px;
+    font-family: 'Alexandria', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--Combo-text-text-primary-paragraph);
+    background: var(--Combo-bg-background-card);
+    border: 1px solid var(--Combo-border-border-neutral-primary);
+    border-radius: 8px;
+    cursor: pointer;
+
+    &:hover:not(:disabled) {
+      background: var(--Combo-bg-background-neutral-100);
+    }
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+  }
+
   &__empty {
     display: flex;
     flex-direction: column;

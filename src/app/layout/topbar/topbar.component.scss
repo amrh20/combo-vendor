@@ -215,6 +215,7 @@
     text-overflow: ellipsis;
   }
 
+  &__menu-link,
   &__logout {
     display: flex;
     align-items: center;
@@ -228,9 +229,18 @@
     font: inherit;
     font-size: 14px;
     font-weight: 500;
-    color: var(--Combo-text-text-error);
     cursor: pointer;
     text-align: start;
+  }
+
+  &__menu-link {
+    color: var(--Combo-text-text-display);
+
+    &:hover { background-color: var(--Combo-bg-background-neutral-50); }
+  }
+
+  &__logout {
+    color: var(--Combo-text-text-error);
 
     &:hover { background-color: var(--Combo-bg-background-error-25); }
   }

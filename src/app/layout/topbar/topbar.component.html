@@ -103,10 +103,14 @@
         <div class="topbar__menu" role="menu">
           <div class="topbar__menu-identity">
             <div class="topbar__menu-name">{{ displayName() }}</div>
-            @if (email()) {
-              <div class="topbar__menu-email" dir="ltr">{{ email() }}</div>
+            @if (username()) {
+              <div class="topbar__menu-email" >{{ username() }}</div>
             }
           </div>
+          <button type="button" class="topbar__menu-link" role="menuitem" (click)="openAccountSettings()">
+            <i class="pi pi-cog" aria-hidden="true"></i>
+            الإعدادات
+          </button>
           <button type="button" class="topbar__logout" role="menuitem" (click)="logout()">
             <i class="pi pi-sign-out" aria-hidden="true"></i>
             تسجيل الخروج

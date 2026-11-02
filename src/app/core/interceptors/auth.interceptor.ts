@@ -18,10 +18,12 @@ import {
 } from 'rxjs';
 import { API_BASE_URL } from '../api-config';
 import { ACCESS_TOKEN_KEY, AuthService } from '../services/auth.service';
+import { apiErrorCode } from '../utils/api-error';
 
 const API_ROOT = `${API_BASE_URL}/v1`;
-const LOGIN_URL = `${API_ROOT}/auth/vendor/login`;
+const LOGIN_URL = `${API_ROOT}/auth/store/login`;
 const REFRESH_URL = `${API_ROOT}/auth/refresh`;
+const LOGOUT_URL = `${API_ROOT}/auth/logout`;
 
 const isRefreshing = new BehaviorSubject(false);
 
@@ -43,7 +45,7 @@ export const authInterceptor: HttpInterceptorFn = (request, next) => {
 
   return next(outgoing).pipe(
     catchError((error: unknown) => {
-      if (!isUnauthenticated(error)) {
+      if (!shouldRefreshSession(error)) {
         return throwError(() => error);
       }
       return afterRefresh(request, next, injector);
@@ -52,14 +54,26 @@ export const authInterceptor: HttpInterceptorFn = (request, next) => {
 };
 
 function isAnonymousAuth(url: string): boolean {
-  return isEndpoint(url, LOGIN_URL) || isEndpoint(url, REFRESH_URL);
+  return (
+    isEndpoint(url, LOGIN_URL) ||
+    isEndpoint(url, REFRESH_URL) ||
+    isEndpoint(url, LOGOUT_URL)
+  );
 }
 
 function isEndpoint(url: string, endpoint: string): boolean {
   return url === endpoint || url.startsWith(`${endpoint}?`);
 }
 
-function isUnauthenticated(error: unknown): error is HttpErrorResponse {
+function shouldRefreshSession(error: unknown): error is HttpErrorResponse {
+  return (
+    error instanceof HttpErrorResponse &&
+    error.status === 401 &&
+    apiErrorCode(error) === 'UNAUTHENTICATED'
+  );
+}
+
+function isUnauthorized(error: unknown): error is HttpErrorResponse {
   return error instanceof HttpErrorResponse && error.status === 401;
 }
 
@@ -100,7 +114,7 @@ function afterRefresh(
       }
       return next(request.clone({ setHeaders: { Authorization: `Bearer ${token}` } })).pipe(
         catchError((error: unknown) => {
-          if (isUnauthenticated(error)) {
+          if (isUnauthorized(error)) {
             injector.get(AuthService).logout();
           }
           return throwError(() => error);

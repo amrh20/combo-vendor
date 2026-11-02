@@ -12,7 +12,7 @@ npm start
 
 App runs at [http://localhost:4202](http://localhost:4202).
 
-Mock API mode is enabled by default (`USE_MOCK_API` in `src/app/core/api-config.ts`). Log in with any email and password.
+All vendor data is loaded from the Combo API (`API_BASE_URL` in `src/app/core/api-config.ts`). Use valid store staff credentials from your backend.
 
 ## Structure
 

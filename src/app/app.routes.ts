@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { authGuard, guestGuard } from './core/guards/auth.guard';
+import { authGuard, catalogEditGuard, guestGuard } from './core/guards/auth.guard';
 import { VendorLayoutComponent } from './layout/vendor-layout/vendor-layout.component';
 
 export const routes: Routes = [
@@ -37,6 +37,7 @@ export const routes: Routes = [
       },
       {
         path: 'products/create',
+        canActivate: [catalogEditGuard],
         loadComponent: () =>
           import('./features/products/product-form/product-form.component').then(
             (m) => m.VendorProductFormComponent,
@@ -44,20 +45,24 @@ export const routes: Routes = [
       },
       {
         path: 'products/:productId/edit',
+        canActivate: [catalogEditGuard],
         loadComponent: () =>
           import('./features/products/product-form/product-form.component').then(
             (m) => m.VendorProductFormComponent,
           ),
       },
+      // MVP is cash-only — Wallet stays in the codebase but is not routed.
+      // {
+      //   path: 'wallet',
+      //   loadComponent: () =>
+      //     import('./features/wallet/wallet.component').then((m) => m.WalletComponent),
+      // },
+      { path: 'wallet', pathMatch: 'full', redirectTo: '/dashboard' },
+      { path: 'profile', pathMatch: 'full', redirectTo: '/settings' },
       {
-        path: 'wallet',
+        path: 'settings',
         loadComponent: () =>
-          import('./features/wallet/wallet.component').then((m) => m.WalletComponent),
-      },
-      {
-        path: 'profile',
-        loadComponent: () =>
-          import('./features/profile/profile.component').then((m) => m.ProfileComponent),
+          import('./features/settings/settings.component').then((m) => m.SettingsComponent),
       },
     ],
   },

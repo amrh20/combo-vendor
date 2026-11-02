@@ -1,3 +1,5 @@
+<p-toast position="top-center" />
+
 <div class="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-8" dir="rtl">
   <div class="w-full max-w-sm rounded-xl border border-gray-100 bg-white p-6 shadow-none">
     <div class="mb-5 text-center">
@@ -19,15 +21,22 @@
     <form class="flex flex-col gap-3" [formGroup]="form" (ngSubmit)="submit()">
       <label class="block">
         <span class="mb-1 block text-[11px] font-medium text-gray-700">
-          البريد الإلكتروني <span class="text-red-600">*</span>
+          اسم المستخدم <span class="text-red-600">*</span>
         </span>
         <input
-          type="email"
-          formControlName="email"
+          type="text"
+          formControlName="username"
           autocomplete="username"
-          dir="ltr"
+          
+          placeholder="saraali"
           class="h-8 w-full rounded-md border border-gray-200 bg-white px-2.5 text-start text-[12px] text-gray-900 outline-none focus:border-[var(--Combo-border-border-primary)]"
+          [class.border-red-400]="form.controls.username.touched && form.controls.username.invalid"
         />
+        @if (form.controls.username.touched && form.controls.username.invalid) {
+          <span class="mt-1 block text-[11px] text-red-600">
+            من 3 إلى 32 حرفاً، حروف إنجليزية وأرقام فقط بدون مسافات.
+          </span>
+        }
       </label>
 
       <label class="block">
@@ -38,7 +47,7 @@
           type="password"
           formControlName="password"
           autocomplete="current-password"
-          dir="ltr"
+          
           placeholder="••••••••"
           class="h-8 w-full rounded-md border border-gray-200 bg-white px-2.5 text-start text-[12px] text-gray-900 outline-none focus:border-[var(--Combo-border-border-primary)]"
         />

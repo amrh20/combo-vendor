@@ -1,3 +1,4 @@
+import { NgIf } from '@angular/common';
 import { Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
@@ -24,13 +25,15 @@ import {
   VendorCatalogProduct,
 } from '../../../core/models/catalog-product.model';
 import { egpToPiastres, piastresToEgp } from '../../../core/models/money.model';
-import { apiErrorMessage } from '../../../core/utils/api-error';
+import { apiErrorMessage, isCatalogEditDisabled } from '../../../core/utils/api-error';
+import { ToastService } from '../../../core/services/toast.service';
 import { Attribute, AttributeService } from '../../../core/services/attribute.service';
 import { ProductService, displayImage } from '../../../core/services/product.service';
 import { CatalogSection, VendorCatalogService } from '../../../core/services/vendor-catalog.service';
+import { AuthService } from '../../../core/services/auth.service';
 import { UploadService } from '../../../core/services/upload.service';
 
-const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 const MAX_IMAGES = 10;
 const MAX_VARIANTS = 10;
 const MAX_OPTIONS = 30;
@@ -48,7 +51,14 @@ function optionalNonNegative(control: AbstractControl): ValidationErrors | null 
 @Component({
   selector: 'vnd-product-form',
   standalone: true,
-  imports: [ReactiveFormsModule, InputTextModule, SelectModule, ToggleSwitchModule, AutoCompleteModule],
+  imports: [
+    NgIf,
+    ReactiveFormsModule,
+    InputTextModule,
+    SelectModule,
+    ToggleSwitchModule,
+    AutoCompleteModule,
+  ],
   templateUrl: './product-form.component.html',
   styleUrl: './product-form.component.scss',
 })
@@ -61,6 +71,9 @@ export class VendorProductFormComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly auth = inject(AuthService);
+  private readonly toast = inject(ToastService);
+  readonly canManageCatalog = this.auth.canManageCatalog;
   private readonly uploadStop$ = new Subject<void>();
   private readonly pendingAttributeNames = new Set<string>();
   private readonly attributeCommitTimers = new Map<number, ReturnType<typeof setTimeout>>();
@@ -96,7 +109,6 @@ export class VendorProductFormComponent implements OnInit {
     description: ['', Validators.maxLength(5000)],
     isAvailable: [true],
     isNew: [false],
-    inStock: [true],
     preparationMinutes: [10, [Validators.required, Validators.min(1)]],
     images: this.fb.nonNullable.array<string>([]),
     variants: this.fb.array<FormGroup>([]),
@@ -306,7 +318,7 @@ export class VendorProductFormComponent implements OnInit {
       return;
     }
     if (file.size > MAX_IMAGE_BYTES) {
-      this.imageError.set('حجم الصورة أكبر من 2 ميجا.');
+      this.imageError.set('حجم الصورة أكبر من 5 ميجا.');
       return;
     }
 
@@ -341,8 +353,13 @@ export class VendorProductFormComponent implements OnInit {
   }
 
   saveProduct(): void {
-    if (this.form.invalid || this.imageError() || this.isUploading() || this.saving() || this.loading()) {
+    this.pruneEmptyVariants();
+    if (this.imageError() || this.isUploading() || this.saving() || this.loading()) {
+      return;
+    }
+    if (this.form.invalid) {
       this.form.markAllAsTouched();
+      this.saveError.set(this.validationSummary());
       return;
     }
 
@@ -359,13 +376,12 @@ export class VendorProductFormComponent implements OnInit {
     }
 
     const payload: ProductWritePayload = {
-      sectionId: raw.sectionId?.trim() || null,
+      shopCategoryId: raw.sectionId?.trim() || null,
       name: raw.name.trim(),
       description: raw.description.trim(),
       images: raw.images.map((image) => image.trim()).filter(Boolean),
       isAvailable: raw.isAvailable,
       isNew: raw.isNew,
-      inStock: raw.inStock,
       preparationMinutes: Number(raw.preparationMinutes),
       pricePiastres: egpToPiastres(price),
       oldPricePiastres: oldPrice === null ? null : egpToPiastres(oldPrice),
@@ -382,13 +398,26 @@ export class VendorProductFormComponent implements OnInit {
     request.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.saving.set(false);
+        const created = !this.productId;
+        this.toast.show({
+          title: created ? 'تمت إضافة المنتج' : 'تم تحديث المنتج',
+          body: created ? 'المنتج ظهر في قائمتك.' : 'تم حفظ التعديلات.',
+          variant: 'success',
+        });
         this.goBack();
       },
       error: (error: unknown) => {
         this.saving.set(false);
-        this.saveError.set(
-          apiErrorMessage(error, this.productId ? 'تعذر تعديل المنتج.' : 'تعذر إضافة المنتج.'),
+        const message = apiErrorMessage(
+          error,
+          this.productId ? 'تعذر تعديل المنتج.' : 'تعذر إضافة المنتج.',
         );
+        this.saveError.set(message);
+        this.toast.show({
+          title: isCatalogEditDisabled(error) ? 'تعديل الكتالوج معطّل' : 'تعذر الحفظ',
+          body: message,
+          variant: 'danger',
+        });
       },
     });
   }
@@ -457,14 +486,13 @@ export class VendorProductFormComponent implements OnInit {
   private fillForm(product: VendorCatalogProduct, prefilledSectionId: string): void {
     this.form.reset({
       name: product.name,
-      sectionId: prefilledSectionId || product.sectionId || null,
+      sectionId: prefilledSectionId || product.sectionId || product.shopCategoryId || null,
       price: piastresToEgp(product.pricePiastres),
       oldPrice: product.oldPricePiastres === null ? null : piastresToEgp(product.oldPricePiastres),
       description: product.description,
       isAvailable: product.isAvailable,
       isNew: product.isNew,
-      inStock: product.inStock,
-      preparationMinutes: product.preparationMinutes,
+      preparationMinutes: normalizePreparationMinutes(product.preparationMinutes),
     });
     this.images.clear();
     for (const image of product.images) {
@@ -664,6 +692,51 @@ export class VendorProductFormComponent implements OnInit {
     void this.router.navigate(['/products']);
   }
 
+  /** Drop variant rows the manager opened then left blank so they do not block save. */
+  private pruneEmptyVariants(): void {
+    for (let index = this.variants.length - 1; index >= 0; index -= 1) {
+      const name = String(this.variants.at(index).get('name')?.value ?? '').trim();
+      if (!name) {
+        this.variants.removeAt(index);
+      }
+    }
+  }
+
+  private validationSummary(): string {
+    const controls = this.form.controls;
+    if (controls.name.invalid) {
+      return controls.name.hasError('minlength')
+        ? 'اسم المنتج حرفان على الأقل.'
+        : 'اسم المنتج مطلوب.';
+    }
+    if (controls.price.invalid) {
+      return 'أدخل سعراً صالحاً للمنتج.';
+    }
+    if (controls.oldPrice.invalid) {
+      return 'السعر السابق غير صالح.';
+    }
+    if (controls.preparationMinutes.invalid) {
+      return 'وقت التحضير دقيقة واحدة على الأقل.';
+    }
+    for (let vi = 0; vi < this.variants.length; vi += 1) {
+      const variant = this.variants.at(vi);
+      if (variant.get('name')?.invalid) {
+        return `أكمل اسم مجموعة الخيارات ${vi + 1}.`;
+      }
+      const options = this.variantOptions(vi);
+      for (let oi = 0; oi < options.length; oi += 1) {
+        const option = options.at(oi);
+        if (option.get('label')?.invalid) {
+          return `أكمل قيمة الخيار ${oi + 1} في المجموعة ${vi + 1}.`;
+        }
+        if (option.get('price')?.invalid) {
+          return `أكمل سعر الخيار ${oi + 1} في المجموعة ${vi + 1}.`;
+        }
+      }
+    }
+    return 'راجع الحقول المطلوبة ثم حاول الحفظ مرة أخرى.';
+  }
+
   private cancelUpload(): void {
     this.uploadSeq += 1;
     this.uploadStop$.next();
@@ -697,6 +770,11 @@ function emptyAttribute(name: string): Attribute {
 
 function isConflict(error: unknown): boolean {
   return error instanceof HttpErrorResponse && error.status === 409;
+}
+
+function normalizePreparationMinutes(value: number | undefined | null): number {
+  const minutes = Number(value);
+  return Number.isFinite(minutes) && minutes >= 1 ? minutes : 10;
 }
 
 function readOptionalEgp(value: unknown): number | null {

@@ -6,9 +6,9 @@
     <div class="stat-card__label">{{ label() }}</div>
     <div class="stat-card__value">
       @if (suffix()) {
-        {{ value() | number:'1.0-0' }} {{ suffix() }}
+        {{ displayValue() | number:'1.0-0' }} {{ suffix() }}
       } @else {
-        {{ value() | number:'1.0-0' }}
+        {{ displayValue() | number:'1.0-0' }}
       }
     </div>
   </div>

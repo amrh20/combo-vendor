@@ -1,69 +1,82 @@
 <div class="live-orders">
-  <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
-    <p class="text-muted mb-0 small">
-      شاشة المطبخ — حدّث الحالة بسرعة. الطلبات الجديدة تُعلن صوتياً وتظهر كإشعار.
+  <div class="live-orders__toolbar">
+    <p class="live-orders__intro">
+      شاشة المطبخ — متابعة الطلبات النشطة لحظياً مع تفاصيل الأصناف.
     </p>
-    <div class="d-flex gap-2">
-      <button type="button" class="btn btn-outline-secondary btn-sm" (click)="refresh()">
-        <i class="pi pi-refresh me-1"></i> تحديث
-      </button>
-      <button type="button" class="btn btn-primary btn-sm" (click)="simulateIncoming()">
-        <i class="pi pi-bell me-1"></i> محاكاة طلب جديد
-      </button>
-    </div>
+    @if (socketStatus() === 'live') {
+      <span class="live-orders__live">متصل لحظيًا</span>
+    } @else if (socketStatus() === 'retrying') {
+      <span class="live-orders__live live-orders__live--off">إعادة الاتصال…</span>
+    }
+    <button type="button" class="btn btn-outline-secondary btn-sm" [disabled]="loading()" (click)="refresh()">
+      <i class="pi pi-refresh me-1" [class.pi-spin]="loading()"></i>
+      تحديث
+    </button>
   </div>
 
-  @if (loading()) {
-    <div class="text-center py-5 text-muted">جارٍ تحميل الطلبات...</div>
+  @if (loading() && orders().length === 0) {
+    <div class="live-orders__loading">
+      <i class="pi pi-spin pi-spinner"></i>
+      <p>جارٍ تحميل الطلبات...</p>
+    </div>
+  } @else if (loadError() && orders().length === 0) {
+    <div class="live-orders__empty">
+      <i class="pi pi-exclamation-circle"></i>
+      <p>{{ loadError() }}</p>
+      <button type="button" class="btn btn-outline-primary btn-sm" (click)="refresh()">إعادة المحاولة</button>
+    </div>
+  } @else if (displayOrders().length === 0) {
+    <div class="live-orders__empty live-orders__empty--hero" aria-live="polite">
+      <svg class="live-orders__empty-icon" viewBox="0 0 120 120" aria-hidden="true">
+        <rect x="18" y="22" width="84" height="76" rx="10" fill="none" stroke="currentColor" stroke-width="3" />
+        <path d="M30 38h60M30 54h44M30 70h52" stroke="currentColor" stroke-width="3" stroke-linecap="round" />
+        <circle cx="88" cy="38" r="14" fill="none" stroke="currentColor" stroke-width="3" />
+        <path d="M82 38h12M88 32v12" stroke="currentColor" stroke-width="3" stroke-linecap="round" />
+      </svg>
+      <p class="live-orders__empty-title">لا توجد طلبات نشطة حالياً.</p>
+      <p class="live-orders__empty-subtitle">في انتظار طلبات جديدة...</p>
+    </div>
   } @else {
-    <div class="kanban">
-      @for (column of board(); track column.id) {
-        <section class="kanban__column combo-card">
-          <header class="kanban__header">
-            <h2 class="kanban__title">{{ column.title }}</h2>
-            <span class="badge rounded-pill text-bg-light border">{{ column.items.length }}</span>
+    <div class="live-orders__grid">
+      @for (order of displayOrders(); track order.id) {
+        <article class="order-card combo-card">
+          <header class="order-card__header">
+            <div class="order-card__header-main">
+              <span class="order-card__number">{{ order.orderNumber }}</span>
+              <time class="order-card__time" [dateTime]="order.placedAt">
+                {{ order.placedAt | date: 'd MMM y, h:mm a': '': 'ar-EG' }}
+              </time>
+            </div>
+            <span [class]="statusBadgeClass(order.status)">{{ statusLabel(order.status) }}</span>
           </header>
 
-          <div class="kanban__cards">
-            @if (column.items.length === 0) {
-              <p class="kanban__empty">لا توجد طلبات</p>
-            }
-            @for (order of column.items; track order.id) {
-              <article class="order-card">
-                <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
-                  <div>
-                    <div class="order-card__number">{{ order.orderNumber }}</div>
-                    <div class="order-card__customer">{{ order.customerName }}</div>
-                  </div>
-                  <span class="badge text-bg-light border">{{ order.itemCount }} عنصر</span>
-                </div>
-                <ul class="order-card__items">
-                  @for (line of order.items; track line.productId) {
-                    <li>{{ line.quantity }}× {{ line.name }}</li>
-                  }
-                </ul>
-                @if (order.notes) {
-                  <p class="order-card__notes"><i class="pi pi-info-circle"></i> {{ order.notes }}</p>
+          <ul class="order-card__items">
+            @for (line of order.items; track line.id) {
+              <li class="order-card__item" [class.order-card__item--removed]="line.isRemoved">
+                <span class="order-card__item-name">{{ line.quantity }}× {{ line.name }}</span>
+                @if (line.options.length > 0) {
+                  <span class="order-card__item-options">
+                    @for (option of line.options; track option.variant + option.option) {
+                      <span>{{ option.variant }}: {{ option.option }}</span>
+                    }
+                  </span>
                 }
-                <div class="d-flex justify-content-between align-items-center mt-2">
-                  <strong>{{ order.total | number:'1.0-0' }} ج.م</strong>
-                  @if (primaryAction(order); as action) {
-                    <button
-                      type="button"
-                      class="btn btn-sm btn-primary"
-                      [disabled]="updatingId() === order.id"
-                      (click)="advance(order)"
-                    >
-                      {{ action.label }}
-                    </button>
-                  } @else {
-                    <span class="small text-success fw-semibold">بانتظار الاستلام</span>
-                  }
-                </div>
-              </article>
+              </li>
             }
-          </div>
-        </section>
+          </ul>
+
+          @if (order.shopNotes) {
+            <p class="order-card__shop-notes">
+              <i class="pi pi-comment" aria-hidden="true"></i>
+              {{ order.shopNotes }}
+            </p>
+          }
+
+          <footer class="order-card__footer">
+            <span class="order-card__total-label">المستحق للمتجر</span>
+            <strong class="order-card__total">{{ egp(order.payable) | number: '1.2-2' }} ج.م</strong>
+          </footer>
+        </article>
       }
     </div>
   }

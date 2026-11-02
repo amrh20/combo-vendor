@@ -14,4 +14,9 @@ export class StatCardComponent {
   suffix = input<string>('');
   icon = input<string>('pi-chart-line');
   accent = input<'primary' | 'success' | 'warning' | 'danger'>('primary');
+
+  displayValue(): number {
+    const raw = this.value();
+    return typeof raw === 'number' && Number.isFinite(raw) ? raw : 0;
+  }
 }

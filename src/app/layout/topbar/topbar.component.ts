@@ -12,9 +12,11 @@ import {
 import { NavigationEnd, Router } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { filter, map } from 'rxjs/operators';
-import { StoreOperationalStatus } from '../../core/models/store.model';
+import { StoreStatus } from '../../core/models/store.model';
 import { AuthService } from '../../core/services/auth.service';
 import { StoreProfileService } from '../../core/services/store-profile.service';
+import { ToastService } from '../../core/services/toast.service';
+import { apiErrorMessage } from '../../core/utils/api-error';
 import {
   VendorNotificationService,
   formatNotificationAge,
@@ -27,7 +29,8 @@ const PAGE_TITLES: Record<string, string> = {
   history: 'سجل الطلبات',
   products: 'المنتجات',
   wallet: 'المحفظة',
-  profile: 'ملف المتجر',
+  profile: 'الإعدادات',
+  settings: 'الإعدادات',
 };
 
 function titleForUrl(url: string): string {
@@ -58,6 +61,7 @@ export class TopbarComponent {
   private readonly router = inject(Router);
   private readonly auth = inject(AuthService);
   private readonly store = inject(StoreProfileService);
+  private readonly toast = inject(ToastService);
   private readonly notices = inject(VendorNotificationService);
   private readonly userMenu = viewChild<ElementRef<HTMLElement>>('userMenu');
   private readonly noticeMenu = viewChild<ElementRef<HTMLElement>>('noticeMenu');
@@ -70,18 +74,20 @@ export class TopbarComponent {
 
   readonly notifications = this.notices.notifications;
   readonly unreadCount = this.notices.unreadCount;
-  readonly storeStatus = this.store.operationalStatus;
+  readonly storeStatus = computed(() => this.store.profile().status);
 
   readonly displayName = computed(() => this.auth.currentUser()?.fullName?.trim() || 'متجر');
-  readonly storeName = computed(() => this.auth.currentUser()?.storeName ?? this.store.profile().name);
-  readonly email = computed(() => this.auth.currentUser()?.email ?? '');
+  readonly storeName = computed(
+    () => this.auth.currentUser()?.store?.name ?? this.store.profile().name,
+  );
+  readonly username = computed(() => this.auth.currentUser()?.username ?? '');
   readonly avatarInitial = computed(() => this.displayName().charAt(0) || 'م');
   readonly formatAge = formatNotificationAge;
 
-  readonly statusOptions: ReadonlyArray<{ id: StoreOperationalStatus; label: string; class: string }> = [
-    { id: 'open', label: 'مفتوح', class: 'topbar__status-pill--open' },
-    { id: 'busy', label: 'مزدحم', class: 'topbar__status-pill--busy' },
-    { id: 'closed', label: 'مغلق', class: 'topbar__status-pill--closed' },
+  readonly statusOptions: ReadonlyArray<{ id: StoreStatus; label: string; class: string }> = [
+    { id: 'OPEN', label: 'مفتوح', class: 'topbar__status-pill--open' },
+    { id: 'BUSY', label: 'مزدحم', class: 'topbar__status-pill--busy' },
+    { id: 'CLOSED', label: 'مغلق', class: 'topbar__status-pill--closed' },
   ];
 
   pageTitle = toSignal(
@@ -92,11 +98,11 @@ export class TopbarComponent {
     { initialValue: titleForUrl(this.router.url) },
   );
 
-  statusLabel(status: StoreOperationalStatus): string {
+  statusLabel(status: StoreStatus): string {
     return this.statusOptions.find((o) => o.id === status)?.label ?? status;
   }
 
-  statusClass(status: StoreOperationalStatus): string {
+  statusClass(status: StoreStatus): string {
     return this.statusOptions.find((o) => o.id === status)?.class ?? '';
   }
 
@@ -121,24 +127,41 @@ export class TopbarComponent {
     this.statusOpen.update((open) => !open);
   }
 
-  setStoreStatus(status: StoreOperationalStatus): void {
+  setStoreStatus(status: StoreStatus): void {
     if (this.statusUpdating() || this.storeStatus() === status) {
       this.statusOpen.set(false);
       return;
     }
     this.statusUpdating.set(true);
-    this.store.setOperationalStatus(status).subscribe({
+    this.store.setStatus(status).subscribe({
       next: () => {
         this.statusUpdating.set(false);
         this.statusOpen.set(false);
+        this.toast.show({
+          title: 'تم التحديث',
+          body: `حالة المتجر الآن: ${this.statusLabel(status)}.`,
+          variant: 'success',
+        });
       },
-      error: () => this.statusUpdating.set(false),
+      error: (error: unknown) => {
+        this.statusUpdating.set(false);
+        this.toast.show({
+          title: 'تعذر التحديث',
+          body: apiErrorMessage(error, 'تعذر تحديث حالة المتجر.'),
+          variant: 'danger',
+        });
+      },
     });
   }
 
   openLiveOrders(): void {
     this.noticesOpen.set(false);
     void this.router.navigateByUrl('/orders/live');
+  }
+
+  openAccountSettings(): void {
+    this.menuOpen.set(false);
+    void this.router.navigateByUrl('/settings');
   }
 
   logout(): void {

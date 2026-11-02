@@ -1,0 +1,146 @@
+<div class="settings">
+  <header class="settings__header">
+    <h1 class="settings__title">الإعدادات</h1>
+    <p class="settings__subtitle">بيانات المتجر والحساب للعرض فقط. لتعديلها تواصل مع فريق العمليات.</p>
+  </header>
+
+  <section class="combo-card settings__card" aria-labelledby="store-details-title">
+    <h2 id="store-details-title" class="combo-page-title">بيانات المتجر</h2>
+    <dl class="settings__grid">
+      <div class="settings__field">
+        <dt class="settings__label">اسم المتجر</dt>
+        <dd class="settings__value">{{ display(store().name) }}</dd>
+      </div>
+      <div class="settings__field">
+        <dt class="settings__label">التصنيف</dt>
+        <dd class="settings__value">{{ display(store().categoryName) }}</dd>
+      </div>
+      <div class="settings__field">
+        <dt class="settings__label">المركز</dt>
+        <dd class="settings__value">{{ display(store().hubName) }}</dd>
+      </div>
+      <div class="settings__field">
+        <dt class="settings__label">الحالة</dt>
+        <dd class="settings__value">
+          @if (store().id) {
+            <span [class]="statusClass(store().status)">{{ statusLabel(store().status) }}</span>
+          } @else {
+            —
+          }
+        </dd>
+      </div>
+    </dl>
+  </section>
+
+  <section class="combo-card settings__card" aria-labelledby="account-details-title">
+    <div class="settings__card-head">
+      <h2 id="account-details-title" class="combo-page-title">بيانات الحساب</h2>
+      <button type="button" class="btn btn-primary settings__action" (click)="openPassword()">
+        تغيير كلمة المرور
+      </button>
+    </div>
+
+    @if (account(); as profile) {
+      <dl class="settings__grid">
+        <div class="settings__field">
+          <dt class="settings__label">الاسم</dt>
+          <dd class="settings__value">{{ display(profile.fullName) }}</dd>
+        </div>
+        <div class="settings__field">
+          <dt class="settings__label">اسم المستخدم</dt>
+          <dd class="settings__value" >{{ display(profile.username) }}</dd>
+        </div>
+        <div class="settings__field">
+          <dt class="settings__label">الدور</dt>
+          <dd class="settings__value">{{ roleLabel(profile.role) }}</dd>
+        </div>
+      </dl>
+    } @else {
+      <p class="settings__value">—</p>
+    }
+  </section>
+</div>
+
+@if (passwordOpen()) {
+  <div
+    class="modal fade show d-block settings-modal"
+    tabindex="-1"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="password-dialog-title"
+    (click)="closePassword()"
+  >
+    <div class="modal-dialog modal-dialog-centered" (click)="$event.stopPropagation()">
+      <div class="modal-content settings-modal__content">
+        <div class="modal-header">
+          <h2 class="modal-title settings-modal__title" id="password-dialog-title">تغيير كلمة المرور</h2>
+          <button
+            type="button"
+            class="btn-close"
+            aria-label="إغلاق"
+            [disabled]="submitting()"
+            (click)="closePassword()"
+          ></button>
+        </div>
+
+        <form id="password-form" class="modal-body" [formGroup]="form" (ngSubmit)="submit()">
+          <p class="settings-modal__hint">
+            كلمة المرور الجديدة 8 أحرف على الأقل، ويجب أن تحتوي على حرف ورقم.
+          </p>
+
+          <div class="mb-3">
+            <label class="form-label" for="currentPassword">كلمة المرور الحالية</label>
+            <input
+              id="currentPassword"
+              type="password"
+              class="form-control"
+              formControlName="currentPassword"
+              autocomplete="current-password"
+              
+            />
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label" for="newPassword">كلمة المرور الجديدة</label>
+            <input
+              id="newPassword"
+              type="password"
+              class="form-control"
+              formControlName="newPassword"
+              autocomplete="new-password"
+              
+            />
+            @if (form.controls.newPassword.touched && form.controls.newPassword.invalid) {
+              <div class="form-text text-danger">8 أحرف على الأقل، مع حرف ورقم.</div>
+            }
+          </div>
+
+          <div>
+            <label class="form-label" for="confirmPassword">تأكيد كلمة المرور الجديدة</label>
+            <input
+              id="confirmPassword"
+              type="password"
+              class="form-control"
+              formControlName="confirmPassword"
+              autocomplete="new-password"
+              
+            />
+            @if (form.controls.confirmPassword.touched && form.controls.confirmPassword.hasError('mismatch')) {
+              <div class="form-text text-danger">كلمتا المرور غير متطابقتين.</div>
+            }
+          </div>
+        </form>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" [disabled]="submitting()" (click)="closePassword()">
+            إلغاء
+          </button>
+          <button type="submit" class="btn btn-primary" form="password-form" [disabled]="submitting()">
+            {{ submitting() ? 'جارٍ الحفظ...' : 'حفظ كلمة المرور' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="modal-backdrop fade show"></div>
+}

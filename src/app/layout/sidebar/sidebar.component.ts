@@ -27,8 +27,9 @@ export class SidebarComponent {
     { label: 'الطلبات المباشرة', icon: 'pi-bolt', route: '/orders/live' },
     { label: 'سجل الطلبات', icon: 'pi-history', route: '/orders/history' },
     { label: 'المنتجات', icon: 'pi-tag', route: '/products' },
-    { label: 'المحفظة', icon: 'pi-wallet', route: '/wallet' },
-    { label: 'ملف المتجر', icon: 'pi-shop', route: '/profile' },
+    // MVP is cash-only between drivers and vendors — hide Wallet until payouts exist.
+    // { label: 'المحفظة', icon: 'pi-wallet', route: '/wallet' },
+    { label: 'الإعدادات', icon: 'pi-cog', route: '/settings' },
   ];
 
   readonly exactMatch = { exact: true };

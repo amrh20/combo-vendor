@@ -1,41 +1,37 @@
-import { DecimalPipe } from '@angular/common';
+import { DatePipe, DecimalPipe } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
-import { VendorOrder, VendorOrderStatus } from '../../../core/models/order.model';
+import {
+  SUB_ORDER_STATUS_LABELS,
+  StoreOrder,
+  SubOrderStatus,
+} from '../../../core/models/order.model';
+import { piastresToEgp } from '../../../core/models/money.model';
 import { OrderService } from '../../../core/services/order.service';
+import { SocketService } from '../../../core/services/socket.service';
 import { ToastService } from '../../../core/services/toast.service';
-
-interface KanbanColumn {
-  id: VendorOrderStatus | 'pending' | 'preparing' | 'ready';
-  title: string;
-  statuses: VendorOrderStatus[];
-}
+import { apiErrorMessage } from '../../../core/utils/api-error';
 
 @Component({
   selector: 'vnd-live-orders',
   standalone: true,
-  imports: [DecimalPipe],
+  imports: [DatePipe, DecimalPipe],
   templateUrl: './live-orders.component.html',
   styleUrl: './live-orders.component.scss',
 })
 export class LiveOrdersComponent {
   private readonly ordersApi = inject(OrderService);
+  private readonly socket = inject(SocketService);
   private readonly toast = inject(ToastService);
 
+  readonly socketStatus = this.socket.status;
+
   readonly loading = signal(true);
+  readonly loadError = signal<string | null>(null);
   readonly orders = this.ordersApi.liveOrders;
-  readonly updatingId = signal<string | null>(null);
+  readonly egp = piastresToEgp;
 
-  readonly columns: KanbanColumn[] = [
-    { id: 'pending', title: 'طلبات جديدة', statuses: ['pending', 'accepted'] },
-    { id: 'preparing', title: 'قيد التحضير', statuses: ['preparing'] },
-    { id: 'ready', title: 'جاهز للاستلام', statuses: ['ready'] },
-  ];
-
-  readonly board = computed(() =>
-    this.columns.map((column) => ({
-      ...column,
-      items: this.orders().filter((order) => column.statuses.includes(order.status)),
-    })),
+  readonly displayOrders = computed(() =>
+    [...this.orders()].sort((a, b) => b.placedAt.localeCompare(a.placedAt)),
   );
 
   constructor() {
@@ -43,53 +39,41 @@ export class LiveOrdersComponent {
   }
 
   refresh(): void {
-    this.loading.set(true);
+    if (this.orders().length === 0) {
+      this.loading.set(true);
+    }
+    this.loadError.set(null);
     this.ordersApi.listLive().subscribe({
-      next: () => this.loading.set(false),
-      error: () => this.loading.set(false),
-    });
-  }
-
-  simulateIncoming(): void {
-    const order = this.ordersApi.createMockIncomingOrder();
-    this.ordersApi.pushMockOrder(order);
-  }
-
-  primaryAction(order: VendorOrder): { label: string; next: VendorOrderStatus } | null {
-    switch (order.status) {
-      case 'pending':
-        return { label: 'قبول الطلب', next: 'preparing' };
-      case 'accepted':
-        return { label: 'بدء التحضير', next: 'preparing' };
-      case 'preparing':
-        return { label: 'جاهز للاستلام', next: 'ready' };
-      default:
-        return null;
-    }
-  }
-
-  advance(order: VendorOrder): void {
-    const action = this.primaryAction(order);
-    if (!action) {
-      return;
-    }
-    this.updateStatus(order.id, action.next);
-  }
-
-  updateStatus(orderId: string, status: VendorOrderStatus): void {
-    this.updatingId.set(orderId);
-    this.ordersApi.updateStatus(orderId, status).subscribe({
-      next: (updated) => {
-        this.updatingId.set(null);
-        if (status === 'ready') {
-          this.toast.show({
-            title: 'جاهز للاستلام',
-            body: `الطلب ${updated.orderNumber} في انتظار المندوب.`,
-            variant: 'success',
-          });
-        }
+      next: () => {
+        this.loading.set(false);
+        this.loadError.set(null);
       },
-      error: () => this.updatingId.set(null),
+      error: (error: unknown) => {
+        this.loading.set(false);
+        this.loadError.set(apiErrorMessage(error, 'تعذر تحميل الطلبات.'));
+        this.toast.show({
+          title: 'تعذر التحميل',
+          body: apiErrorMessage(error, 'تعذر تحميل الطلبات.'),
+          variant: 'danger',
+        });
+      },
     });
+  }
+
+  statusLabel(status: SubOrderStatus): string {
+    return SUB_ORDER_STATUS_LABELS[status] ?? status;
+  }
+
+  statusBadgeClass(status: SubOrderStatus): string {
+    switch (status) {
+      case 'PENDING':
+        return 'live-orders__badge live-orders__badge--pending';
+      case 'PREPARING':
+        return 'live-orders__badge live-orders__badge--preparing';
+      case 'READY_FOR_PICKUP':
+        return 'live-orders__badge live-orders__badge--ready';
+      default:
+        return 'live-orders__badge live-orders__badge--default';
+    }
   }
 }

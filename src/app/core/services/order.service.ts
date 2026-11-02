@@ -1,172 +1,164 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Injectable, inject, signal } from '@angular/core';
-import { Observable, Subject, delay, map, of, tap } from 'rxjs';
-import { API_BASE_URL, USE_MOCK_API } from '../api-config';
-import { OrderListQuery, VendorOrder, VendorOrderStatus } from '../models/order.model';
+import { EMPTY, Observable, expand, filter, of, reduce, tap, throwError } from 'rxjs';
+import { catchError } from 'rxjs/operators';
+import { API_BASE_URL } from '../api-config';
+import { LIST_PAGE_SIZE } from '../list-page';
+import { CursorPage, LIVE_ORDER_STATUSES, StoreOrder, SubOrderStatus } from '../models/order.model';
+import { SocketService } from './socket.service';
 
-const ORDERS_URL = `${API_BASE_URL}/v1/vendor/orders`;
-
-let mockSeq = 1000;
+const ORDERS_URL = `${API_BASE_URL}/v1/store/orders`;
+const LIVE_STATUSES = new Set<SubOrderStatus>(LIVE_ORDER_STATUSES);
 
 @Injectable({ providedIn: 'root' })
 export class OrderService {
   private readonly http = inject(HttpClient);
-  private readonly liveOrdersState = signal<VendorOrder[]>(seedLiveOrders());
+  private readonly socket = inject(SocketService);
+  private readonly liveOrdersState = signal<StoreOrder[]>([]);
+  /** Drops a `listLive` response that finished after a newer load or a socket refresh. */
+  private liveGeneration = 0;
+
   readonly liveOrders = this.liveOrdersState.asReadonly();
-  readonly mockOrderStream$ = new Subject<VendorOrder>();
+  readonly lateOrderIds = signal<ReadonlySet<string>>(new Set());
 
-  listLive(): Observable<VendorOrder[]> {
-    if (USE_MOCK_API) {
-      return of([...this.liveOrdersState()]).pipe(delay(150));
-    }
+  constructor() {
+    this.socket.orderEvents$
+      .pipe(filter((event) => event.event === 'order.created' || event.event === 'order.updated'))
+      .subscribe((event) => {
+        const id = event.data.subOrderId;
+        if (!id) {
+          return;
+        }
+        this.refreshOne(id).subscribe({ error: () => undefined });
+      });
+  }
+
+  /** `GET /v1/store/orders?view=live`, following the cursor until the board is complete. */
+  listLive(): Observable<StoreOrder[]> {
+    const generation = ++this.liveGeneration;
+    return this.collect('live').pipe(
+      tap((orders) => {
+        if (generation === this.liveGeneration) {
+          this.liveOrdersState.set(orders);
+        }
+      }),
+    );
+  }
+
+  /** `GET /v1/store/orders?view=history` (paginated; sort client-side by `placedAt` desc). */
+  listHistory(cursor?: string): Observable<CursorPage<StoreOrder>> {
+    return this.fetchPage('history', cursor);
+  }
+
+  /** `GET /v1/store/orders/{id}` and keep the live board in sync. */
+  refreshOne(id: string): Observable<StoreOrder | null> {
+    return this.http.get<StoreOrder>(`${ORDERS_URL}/${id}`).pipe(
+      tap((order) => this.applyLive(order)),
+      catchError((error: unknown) => {
+        if (error instanceof HttpErrorResponse && error.status === 404) {
+          this.removeLive(id);
+          return of(null);
+        }
+        return throwError(() => error);
+      }),
+    );
+  }
+
+  /** `POST /v1/store/orders/{id}/accept` */
+  accept(id: string, unavailableItemIds: string[] = []): Observable<StoreOrder> {
     return this.http
-      .get<VendorOrder[]>(ORDERS_URL, { params: { view: 'live' } })
-      .pipe(tap((orders) => this.liveOrdersState.set(orders)));
+      .post<StoreOrder>(
+        `${ORDERS_URL}/${id}/accept`,
+        { unavailableItemIds },
+        { headers: this.idempotency() },
+      )
+      .pipe(tap((order) => this.applyLive(order)));
   }
 
-  listHistory(query: OrderListQuery = {}): Observable<VendorOrder[]> {
-    if (USE_MOCK_API) {
-      return of(seedHistoryOrders()).pipe(delay(200));
-    }
-    return this.http.get<VendorOrder[]>(`${ORDERS_URL}/history`, { params: { ...query } as Record<string, string> });
+  /** `POST /v1/store/orders/{id}/reject` */
+  reject(id: string, reason: string): Observable<StoreOrder> {
+    return this.http
+      .post<StoreOrder>(`${ORDERS_URL}/${id}/reject`, { reason }, { headers: this.idempotency() })
+      .pipe(tap((order) => this.applyLive(order)));
   }
 
-  updateStatus(orderId: string, status: VendorOrderStatus): Observable<VendorOrder> {
-    if (USE_MOCK_API) {
-      this.liveOrdersState.update((orders) =>
-        orders.map((order) =>
-          order.id === orderId
-            ? { ...order, status, updatedAt: new Date().toISOString() }
-            : order,
-        ),
-      );
-      const updated = this.liveOrdersState().find((o) => o.id === orderId)!;
-      return of(updated).pipe(delay(120));
-    }
-    return this.http.patch<VendorOrder>(`${ORDERS_URL}/${orderId}/status`, { status });
+  /** `POST /v1/store/orders/{id}/ready` */
+  ready(id: string): Observable<StoreOrder> {
+    return this.http
+      .post<StoreOrder>(`${ORDERS_URL}/${id}/ready`, {}, { headers: this.idempotency() })
+      .pipe(tap((order) => this.applyLive(order)));
   }
 
-  upsertLiveOrder(order: VendorOrder): void {
-    this.liveOrdersState.update((orders) => {
-      const idx = orders.findIndex((o) => o.id === order.id);
-      if (idx === -1) {
-        return [order, ...orders];
+  markLate(id: string): void {
+    this.lateOrderIds.update((ids) => {
+      if (ids.has(id)) {
+        return ids;
       }
-      const next = [...orders];
-      next[idx] = order;
+      const next = new Set(ids);
+      next.add(id);
       return next;
     });
   }
 
-  liveSnapshot(): VendorOrder[] {
+  liveSnapshot(): StoreOrder[] {
     return this.liveOrdersState();
   }
 
-  pushMockOrder(order: VendorOrder): void {
-    this.upsertLiveOrder(order);
-    this.mockOrderStream$.next(order);
+  private fetchPage(
+    view: 'live' | 'history',
+    cursor?: string,
+  ): Observable<CursorPage<StoreOrder>> {
+    return this.http.get<CursorPage<StoreOrder>>(ORDERS_URL, {
+      params: {
+        view,
+        limit: String(LIST_PAGE_SIZE),
+        ...(cursor ? { cursor } : {}),
+      },
+    });
   }
 
-  createMockIncomingOrder(): VendorOrder {
-    mockSeq += 1;
-    const now = new Date().toISOString();
-    return {
-      id: `ord-${mockSeq}`,
-      orderNumber: `#${mockSeq}`,
-      customerName: 'عميل كومبو',
-      status: 'pending',
-      total: 85 + (mockSeq % 5) * 12,
-      itemCount: 2 + (mockSeq % 3),
-      items: [
-        { productId: 'p1', name: 'ساندwich مشكل', quantity: 1, unitPrice: 45 },
-        { productId: 'p2', name: 'عصير برتقال', quantity: 1, unitPrice: 25 },
-      ],
-      notes: mockSeq % 2 === 0 ? 'بدون بصل' : undefined,
-      createdAt: now,
-      updatedAt: now,
-    };
+  private collect(view: 'live' | 'history'): Observable<StoreOrder[]> {
+    const load = (cursor?: string) => this.fetchPage(view, cursor);
+
+    return load().pipe(
+      expand((page) => (page.nextCursor ? load(page.nextCursor) : EMPTY)),
+      reduce((all, page) => all.concat(page.items), [] as StoreOrder[]),
+    );
   }
 
-  normalizeIncoming(payload: unknown): VendorOrder | null {
-    if (!payload || typeof payload !== 'object') {
-      return null;
+  private applyLive(order: StoreOrder): void {
+    this.liveGeneration++;
+    if (!LIVE_STATUSES.has(order.status)) {
+      this.removeLive(order.id);
+      return;
     }
-    const row = payload as Partial<VendorOrder>;
-    if (!row.id || !row.orderNumber) {
-      return null;
+    if (order.status !== 'PENDING') {
+      this.clearLate(order.id);
     }
-    return {
-      id: row.id,
-      orderNumber: row.orderNumber,
-      customerName: row.customerName ?? 'عميل',
-      status: row.status ?? 'pending',
-      total: row.total ?? 0,
-      itemCount: row.itemCount ?? row.items?.length ?? 0,
-      items: row.items ?? [],
-      notes: row.notes,
-      createdAt: row.createdAt ?? new Date().toISOString(),
-      updatedAt: row.updatedAt ?? new Date().toISOString(),
-    };
+    this.liveOrdersState.update((orders) => {
+      const without = orders.filter((item) => item.id !== order.id);
+      return [...without, order].sort((a, b) => a.placedAt.localeCompare(b.placedAt));
+    });
   }
-}
 
-function seedLiveOrders(): VendorOrder[] {
-  const now = new Date().toISOString();
-  return [
-    {
-      id: 'ord-1001',
-      orderNumber: '#1001',
-      customerName: 'سارة محمود',
-      status: 'pending',
-      total: 128,
-      itemCount: 3,
-      items: [
-        { productId: 'p3', name: 'كروissant', quantity: 2, unitPrice: 18 },
-        { productId: 'p4', name: 'قهوة', quantity: 1, unitPrice: 92 },
-      ],
-      createdAt: now,
-      updatedAt: now,
-    },
-    {
-      id: 'ord-1002',
-      orderNumber: '#1002',
-      customerName: 'كريم حسن',
-      status: 'preparing',
-      total: 64,
-      itemCount: 2,
-      items: [{ productId: 'p5', name: 'فطيرة جبن', quantity: 2, unitPrice: 32 }],
-      createdAt: now,
-      updatedAt: now,
-    },
-  ];
-}
+  private removeLive(id: string): void {
+    this.liveGeneration++;
+    this.clearLate(id);
+    this.liveOrdersState.update((orders) => orders.filter((order) => order.id !== id));
+  }
 
-function seedHistoryOrders(): VendorOrder[] {
-  const day = new Date();
-  day.setDate(day.getDate() - 1);
-  const createdAt = day.toISOString();
-  return [
-    {
-      id: 'ord-900',
-      orderNumber: '#900',
-      customerName: 'ليلى',
-      status: 'completed',
-      total: 210,
-      itemCount: 4,
-      items: [],
-      createdAt,
-      updatedAt: createdAt,
-    },
-    {
-      id: 'ord-901',
-      orderNumber: '#901',
-      customerName: 'يوسف',
-      status: 'cancelled',
-      total: 55,
-      itemCount: 1,
-      items: [],
-      createdAt,
-      updatedAt: createdAt,
-    },
-  ];
+  private clearLate(id: string): void {
+    this.lateOrderIds.update((ids) => {
+      if (!ids.has(id)) {
+        return ids;
+      }
+      const next = new Set(ids);
+      next.delete(id);
+      return next;
+    });
+  }
+
+  private idempotency(): Record<string, string> {
+    return { 'Idempotency-Key': crypto.randomUUID() };
+  }
 }

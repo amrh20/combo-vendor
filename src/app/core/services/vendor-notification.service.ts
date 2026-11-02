@@ -1,7 +1,7 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { VendorNotification } from '../models/notification.model';
-import { VendorOrder } from '../models/order.model';
+import { StoreOrderEvent } from '../models/order.model';
 import { OrderService } from './order.service';
 import { SocketService } from './socket.service';
 import { ToastService } from './toast.service';
@@ -20,15 +20,16 @@ export class VendorNotificationService {
   readonly unreadCount = computed(() => this.items().filter((item) => !item.read).length);
 
   constructor() {
-    this.socket.incomingOrder$.pipe(takeUntilDestroyed()).subscribe((order) => {
-      this.orders.upsertLiveOrder(order);
-      this.pushNewOrder(order);
-      this.playNewOrderSound();
-      this.toast.show({
-        title: 'طلب جديد',
-        body: `تم استلام ${order.orderNumber} — ${order.customerName}`,
-        variant: 'info',
-      });
+    this.socket.connected$.pipe(takeUntilDestroyed()).subscribe(() => {
+      this.orders.listLive().subscribe({ error: () => undefined });
+    });
+
+    this.socket.orderEvents$.pipe(takeUntilDestroyed()).subscribe((event) => {
+      if (event.event === 'order.created') {
+        this.onCreated(event);
+        return;
+      }
+      this.onUpdated(event);
     });
   }
 
@@ -36,12 +37,36 @@ export class VendorNotificationService {
     this.items.update((items) => items.map((item) => (item.read ? item : { ...item, read: true })));
   }
 
-  private pushNewOrder(order: VendorOrder): void {
+  private onCreated(event: StoreOrderEvent): void {
+    const orderNumber = event.data.orderNumber ?? 'جديد';
+    this.playNewOrderSound();
+    this.pushNotification(event.data.subOrderId, orderNumber, `طلب جديد: ${orderNumber}`);
+    this.toast.show({
+      title: 'طلب جديد',
+      body: `تم استلام ${orderNumber}.`,
+      variant: 'info',
+    });
+  }
+
+  private onUpdated(event: StoreOrderEvent): void {
+    this.playNewOrderSound();
+    if (event.data.type === 'sub_order.late') {
+      this.orders.markLate(event.data.subOrderId);
+      const known = this.orders.liveSnapshot().find((order) => order.id === event.data.subOrderId);
+      this.toast.show({
+        title: 'الطلب مستني ردك',
+        body: known ? `الطلب ${known.orderNumber} لسه من غير رد.` : 'في طلب لسه من غير رد.',
+        variant: 'warning',
+      });
+    }
+  }
+
+  private pushNotification(orderId: string, orderNumber: string, message: string): void {
     const notification: VendorNotification = {
-      id: `${order.id}-${Date.now()}`,
-      orderId: order.id,
-      orderNumber: order.orderNumber,
-      message: `طلب جديد: ${order.orderNumber}`,
+      id: `${orderId}-${Date.now()}`,
+      orderId,
+      orderNumber,
+      message,
       createdAt: new Date().toISOString(),
       read: false,
     };
@@ -53,7 +78,7 @@ export class VendorNotificationService {
       const audio = new Audio(NEW_ORDER_SOUND);
       void audio.play().catch(() => undefined);
     } catch {
-      // Autoplay policy must not break the KDS.
+      // Autoplay policy must not break the kitchen screen.
     }
   }
 }
