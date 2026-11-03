@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable, map } from 'rxjs';
-import { API_BASE_URL } from '../api-config';
+import { environment } from '../../../environments/environment';
 
 export interface CatalogSection {
   id: string;
@@ -16,7 +16,7 @@ export interface SectionWritePayload {
   parentId?: string | null;
 }
 
-const SECTIONS_URL = `${API_BASE_URL}/v1/store/sections`;
+const SECTIONS_URL = `${environment.apiUrl}/v1/store/sections`;
 
 @Injectable({ providedIn: 'root' })
 export class VendorCatalogService {

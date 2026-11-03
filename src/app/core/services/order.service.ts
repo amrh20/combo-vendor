@@ -2,12 +2,12 @@ import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Injectable, inject, signal } from '@angular/core';
 import { EMPTY, Observable, expand, filter, of, reduce, tap, throwError } from 'rxjs';
 import { catchError } from 'rxjs/operators';
-import { API_BASE_URL } from '../api-config';
+import { environment } from '../../../environments/environment';
 import { LIST_PAGE_SIZE } from '../list-page';
 import { CursorPage, LIVE_ORDER_STATUSES, StoreOrder, SubOrderStatus } from '../models/order.model';
 import { SocketService } from './socket.service';
 
-const ORDERS_URL = `${API_BASE_URL}/v1/store/orders`;
+const ORDERS_URL = `${environment.apiUrl}/v1/store/orders`;
 const LIVE_STATUSES = new Set<SubOrderStatus>(LIVE_ORDER_STATUSES);
 
 @Injectable({ providedIn: 'root' })

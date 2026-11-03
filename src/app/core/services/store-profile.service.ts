@@ -1,10 +1,10 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject, signal } from '@angular/core';
 import { Observable, tap } from 'rxjs';
-import { API_BASE_URL } from '../api-config';
+import { environment } from '../../../environments/environment';
 import { StoreProfile, StoreStatus } from '../models/store.model';
 
-const STORE_URL = `${API_BASE_URL}/v1/store`;
+const STORE_URL = `${environment.apiUrl}/v1/store`;
 
 @Injectable({ providedIn: 'root' })
 export class StoreProfileService {

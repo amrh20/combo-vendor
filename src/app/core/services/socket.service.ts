@@ -1,6 +1,6 @@
 import { Injectable, NgZone, effect, inject, signal } from '@angular/core';
 import { Subject } from 'rxjs';
-import { API_BASE_URL } from '../api-config';
+import { environment } from '../../../environments/environment';
 import { StoreOrderEvent } from '../models/order.model';
 import { AuthService } from './auth.service';
 
@@ -157,7 +157,7 @@ export class SocketService {
 }
 
 function realtimeUrl(token: string): string {
-  const base = API_BASE_URL.replace(/^http/, 'ws');
+  const base = environment.apiUrl.replace(/^http/, 'ws');
   return `${base}/v1/realtime?access_token=${encodeURIComponent(token)}`;
 }
 

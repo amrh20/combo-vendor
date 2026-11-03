@@ -2,7 +2,7 @@ import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Injectable, Injector, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { Observable, ReplaySubject, map, switchMap, take, tap, throwError } from 'rxjs';
-import { API_BASE_URL } from '../api-config';
+import { environment } from '../../../environments/environment';
 import { ApiErrorBody, VendorLoginResponse, VendorProfile, VendorTokenPair } from '../models/auth.model';
 import { StoreProfileService } from './store-profile.service';
 
@@ -54,7 +54,7 @@ export class AuthService {
   /** `POST /v1/auth/store/login` with `{ username, password }`. */
   login(username: string, password: string): Observable<VendorProfile> {
     return this.http
-      .post<VendorLoginResponse>(`${API_BASE_URL}/v1/auth/store/login`, {
+      .post<VendorLoginResponse>(`${environment.apiUrl}/v1/auth/store/login`, {
         username: username.trim(),
         password,
       })
@@ -67,7 +67,7 @@ export class AuthService {
   loadUserProfile(): Observable<VendorProfile> {
     const token = this.accessToken();
     return this.http
-      .get<VendorProfile>(`${API_BASE_URL}/v1/auth/store/me`, {
+      .get<VendorProfile>(`${environment.apiUrl}/v1/auth/store/me`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       })
       .pipe(tap((profile) => this.rememberProfile(profile)));
@@ -78,7 +78,7 @@ export class AuthService {
    */
   changePassword(currentPassword: string, newPassword: string): Observable<void> {
     return this.http
-      .post(`${API_BASE_URL}/v1/auth/store/change-password`, { currentPassword, newPassword })
+      .post(`${environment.apiUrl}/v1/auth/store/change-password`, { currentPassword, newPassword })
       .pipe(
         switchMap(() => this.refreshToken()),
         map(() => undefined),
@@ -92,7 +92,7 @@ export class AuthService {
     }
 
     return this.http
-      .post<VendorTokenPair>(`${API_BASE_URL}/v1/auth/refresh`, { refreshToken })
+      .post<VendorTokenPair>(`${environment.apiUrl}/v1/auth/refresh`, { refreshToken })
       .pipe(tap((tokens) => this.persistSession(tokens)));
   }
 
@@ -116,7 +116,7 @@ export class AuthService {
       return;
     }
 
-    this.http.post(`${API_BASE_URL}/v1/auth/logout`, { refreshToken }).subscribe({
+    this.http.post(`${environment.apiUrl}/v1/auth/logout`, { refreshToken }).subscribe({
       next: () => finish(),
       error: () => finish(),
     });

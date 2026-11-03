@@ -1,14 +1,14 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable, map } from 'rxjs';
-import { API_BASE_URL } from '../api-config';
+import { environment } from '../../../environments/environment';
 import {
   StoreStatsPeriod,
   StoreStatsResponse,
   StoreStatsSummary,
 } from '../models/store-stats.model';
 
-const STATS_URL = `${API_BASE_URL}/v1/store/stats`;
+const STATS_URL = `${environment.apiUrl}/v1/store/stats`;
 
 const ZERO_SUMMARY: StoreStatsSummary = {
   totalOrders: 0,

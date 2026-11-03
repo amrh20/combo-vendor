@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable, map } from 'rxjs';
-import { API_BASE_URL } from '../api-config';
+import { environment } from '../../../environments/environment';
 
 export interface Attribute {
   id: string;
@@ -15,7 +15,7 @@ export interface AttributeWritePayload {
   values?: string[];
 }
 
-const ATTRIBUTES_URL = `${API_BASE_URL}/v1/store/attributes`;
+const ATTRIBUTES_URL = `${environment.apiUrl}/v1/store/attributes`;
 
 @Injectable({ providedIn: 'root' })
 export class AttributeService {
