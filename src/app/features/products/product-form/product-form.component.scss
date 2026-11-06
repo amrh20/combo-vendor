@@ -491,6 +491,42 @@
   }
 }
 
+@media (max-width: 575.98px) {
+  .product-form__combo-table-wrap {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .product-form__combo-table {
+    font-size: 12px;
+
+    th,
+    td {
+      padding: 8px 10px;
+    }
+  }
+
+  .product-form__combo-label {
+    min-width: 100px;
+    padding-inline-start: 12px;
+  }
+
+  :host ::ng-deep .product-form__combo-price,
+  :host ::ng-deep .product-form__combo-qty {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+
+    .p-inputnumber-input {
+      font-size: 12px;
+      padding: 7px 8px;
+    }
+  }
+
+  .product-form__combo-toggle {
+    width: auto;
+  }
+}
+
 :host ::ng-deep p-inputnumber.ng-invalid.ng-dirty .p-inputnumber-input {
   border-color: var(--Combo-text-text-error);
 }
@@ -636,6 +672,22 @@
 
   .product-form__option {
     gap: 0.5rem;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .product-form__card {
+    padding: 18px 16px;
+  }
+
+  .product-form__footer {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  .product-form__btn {
+    width: 100%;
+    justify-content: center;
   }
 }
 

@@ -32,6 +32,7 @@
   &__header-actions {
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
     gap: 8px;
   }
 
@@ -70,6 +71,25 @@
     }
   }
 
+  &__import-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 16px;
+    font-family: 'Alexandria', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--Combo-text-text-display);
+    background: #fff;
+    border: 1px solid var(--Combo-border-border-neutral-primary);
+    border-radius: 999px;
+    cursor: pointer;
+
+    &:hover {
+      background: #f9fafb;
+    }
+  }
+
   &__icon-btn {
     display: inline-flex;
     align-items: center;
@@ -93,7 +113,7 @@
 
   &__grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(260px, 100%), 1fr));
     gap: 16px;
   }
 
@@ -471,13 +491,27 @@
 
 @media (max-width: 575px) {
   .vendor-products {
-    &__header-actions {
-      width: 100%;
-      justify-content: stretch;
+    gap: 16px;
+
+    &__header {
+      flex-direction: column;
+      align-items: stretch;
     }
 
+    &__header-actions {
+      width: 100%;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 10px;
+    }
+
+    &__icon-btn {
+      align-self: flex-start;
+    }
+
+    &__import-btn,
     &__add-btn {
-      flex: 1;
+      width: 100%;
       justify-content: center;
     }
 
@@ -487,6 +521,12 @@
 
     &__card-action span {
       display: none;
+    }
+
+    &__dialog {
+      margin: auto;
+      max-height: min(92dvh, 720px);
+      padding: 18px;
     }
   }
 }

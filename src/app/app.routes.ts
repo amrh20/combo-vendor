@@ -44,6 +44,13 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'products/import',
+        loadComponent: () =>
+          import('./features/products/catalog-import/catalog-import.component').then(
+            (m) => m.CatalogImportComponent,
+          ),
+      },
+      {
         path: 'products/:productId/edit',
         canActivate: [catalogEditGuard],
         loadComponent: () =>

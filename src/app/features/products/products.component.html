@@ -11,6 +11,15 @@
       <button
         *ngIf="canManageCatalog()"
         type="button"
+        class="vendor-products__import-btn"
+        (click)="openImport()"
+      >
+        <i class="pi pi-file-excel"></i>
+        استيراد Excel
+      </button>
+      <button
+        *ngIf="canManageCatalog()"
+        type="button"
         class="vendor-products__add-btn"
         (click)="openCreate()"
       >

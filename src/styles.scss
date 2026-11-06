@@ -54,6 +54,11 @@ body {
   }
 }
 
+.table-responsive {
+  -webkit-overflow-scrolling: touch;
+  max-width: 100%;
+}
+
 .password-toggle {
   position: relative;
   display: block;
@@ -96,6 +101,7 @@ body {
   border: 1px solid var(--Combo-border-border-neutral-secondary);
   border-radius: 12px;
   padding: 20px;
+  min-width: 0;
 }
 
 .combo-page-title {
@@ -104,4 +110,23 @@ body {
   font-weight: 700;
   color: var(--Combo-text-text-display);
   margin: 0 0 16px;
+}
+
+@media (max-width: 991.98px) {
+  .combo-card {
+    padding: 16px 18px;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .combo-card {
+    padding: 14px 14px;
+    border-radius: 10px;
+  }
+
+  .combo-page-title {
+    font-size: 14px;
+    margin-bottom: 12px;
+    line-height: 1.35;
+  }
 }

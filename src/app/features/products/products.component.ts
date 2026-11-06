@@ -153,6 +153,13 @@ export class ProductsComponent {
     void this.router.navigate(['/products/create']);
   }
 
+  openImport(): void {
+    if (!this.canManageCatalog()) {
+      return;
+    }
+    void this.router.navigate(['/products/import']);
+  }
+
   openEdit(product: VendorCatalogProduct): void {
     if (!this.canManageCatalog()) {
       return;

@@ -126,5 +126,10 @@
       align-items: stretch;
       flex-direction: column;
     }
+
+    &__action {
+      width: 100%;
+      justify-content: center;
+    }
   }
 }

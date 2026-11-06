@@ -6,6 +6,7 @@
   border-radius: 12px;
   border: 1px solid var(--Combo-border-border-neutral-secondary);
   background: var(--Combo-bg-background-card);
+  min-width: 0;
 
   &__icon {
     width: 44px;
@@ -26,9 +27,15 @@
 
   &__value {
     font-family: 'Kufam', sans-serif;
-    font-size: 22px;
+    font-size: clamp(17px, 4.2vw, 22px);
     font-weight: 700;
     color: var(--Combo-text-text-display);
+    line-height: 1.2;
+    word-break: break-word;
+  }
+
+  &__body {
+    min-width: 0;
   }
 
   &--primary .stat-card__icon {
@@ -49,5 +56,22 @@
   &--danger .stat-card__icon {
     background: #fee2e2;
     color: #991b1b;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .stat-card {
+    gap: 10px;
+    padding: 14px;
+
+    &__icon {
+      width: 40px;
+      height: 40px;
+      font-size: 16px;
+    }
+
+    &__label {
+      font-size: 11px;
+    }
   }
 }

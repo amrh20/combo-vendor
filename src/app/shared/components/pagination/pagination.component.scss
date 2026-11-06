@@ -35,3 +35,23 @@
     }
   }
 }
+
+@media (max-width: 575.98px) {
+  .vnd-pagination {
+    flex-wrap: wrap;
+    gap: 10px;
+    padding-inline: 4px;
+
+    &__btn {
+      flex: 1 1 calc(50% - 6px);
+      min-width: 0;
+      padding: 10px 12px;
+    }
+
+    &__page {
+      flex: 1 1 100%;
+      order: -1;
+      min-width: 0;
+    }
+  }
+}
