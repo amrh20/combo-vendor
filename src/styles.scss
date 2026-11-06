@@ -26,6 +26,14 @@ body {
 .font-kufam { font-family: 'Kufam', sans-serif; }
 .font-alexandria { font-family: 'Alexandria', sans-serif; }
 
+.p-datatable,
+.p-datatable-table-container {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
 .p-datatable {
   font-family: 'Alexandria', sans-serif;
   direction: rtl;
